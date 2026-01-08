@@ -63,6 +63,7 @@
       display: flex;
       align-items: center;
       gap: var(--mat-sys-spacing-1, 4px);
+      margin-left: var(--mat-sys-spacing-4, 16px);
       padding: var(--mat-sys-spacing-1, 4px) var(--mat-sys-spacing-2, 8px);
       background-color: var(--mat-sys-secondary-container);
       color: var(--mat-sys-on-secondary-container);
