@@ -1,12 +1,14 @@
 # Goose Configuration for goose-agent-chat
 # This file configures default Goose behavior when running in Cloud Foundry
 #
-# Provider and API keys should be set via environment variables:
-#   - ANTHROPIC_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY, etc.
-#   - GOOSE_PROVIDER__TYPE (anthropic, openai, google, databricks, ollama)
-#   - GOOSE_PROVIDER__MODEL (e.g., claude-sonnet-4-20250514)
-#
 # See: https://block.github.io/goose/docs/guides/configuration-files/
+
+# LLM Provider configuration
+# Supported providers: openai, anthropic, google, databricks, ollama
+provider: openai
+
+# Model to use with the provider
+model: gpt-4o
 
 # Extensions to enable by default
 extensions:

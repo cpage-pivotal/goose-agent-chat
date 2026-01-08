@@ -9,10 +9,8 @@ applications:
     env:
       JBP_CONFIG_OPEN_JDK_JRE: '{ jre: { version: 21.+ } }'
       GOOSE_ENABLED: true
-      # Provider configuration - set provider type and model
-      GOOSE_PROVIDER: openai
-      GOOSE_MODEL: gpt-4o
-      # API key for the configured provider:
+      # Provider/model configuration is in .goose-config.yml (src/main/resources)
+      # API key for the configured provider (set via CredHub or cf set-env):
       # ANTHROPIC_API_KEY: ((ANTHROPIC_API_KEY))
       OPENAI_API_KEY: ((OPENAI_API_KEY))
       # GOOGLE_API_KEY: ((GOOGLE_API_KEY))
