@@ -56,6 +56,7 @@ public class GooseChatController {
     
     private final GooseExecutor executor;
     private final GenaiModelConfiguration genaiModelConfiguration;
+    private final ProviderConfiguration providerConfiguration;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
     
@@ -67,9 +68,13 @@ public class GooseChatController {
         return t;
     });
 
-    public GooseChatController(GooseExecutor executor, GenaiModelConfiguration genaiModelConfiguration) {
+    public GooseChatController(
+            GooseExecutor executor, 
+            GenaiModelConfiguration genaiModelConfiguration,
+            ProviderConfiguration providerConfiguration) {
         this.executor = executor;
         this.genaiModelConfiguration = genaiModelConfiguration;
+        this.providerConfiguration = providerConfiguration;
         logger.info("GooseChatController initialized with Goose native session support");
         
         // Schedule periodic session cleanup
@@ -87,9 +92,24 @@ public class GooseChatController {
             @RequestBody(required = false) CreateSessionRequest request) {
         logger.info("Creating new conversation session");
         
+            // #region agent log
+            try {
+                java.nio.file.Files.write(java.nio.file.Paths.get("/Users/orenpenso/git/tanzu-agent/.cursor/debug.log"), 
+                    (java.time.Instant.now().toString() + "|GooseChatController.java:88|createSession|ENTRY|hypothesisId:A|data:{\"request\":\"" + (request != null ? request.toString().replace("\"", "'") : "null") + "\"}\n").getBytes(), 
+                    java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+            } catch (Exception e) {}
+            // #endregion
+        
         try {
             if (!executor.isAvailable()) {
                 logger.error("Goose CLI is not available");
+                // #region agent log
+                try {
+                    java.nio.file.Files.write(java.nio.file.Paths.get("/Users/orenpenso/git/goose-agent-chat/.cursor/debug.log"), 
+                        (java.time.Instant.now().toString() + "|GooseChatController.java:92|createSession|GOOSE_NOT_AVAILABLE|hypothesisId:B|data:{\"executorAvailable\":false}\n").getBytes(), 
+                        java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+                } catch (Exception e) {}
+                // #endregion
                 return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(new CreateSessionResponse(null, false, "Goose CLI is not available"));
             }
@@ -97,6 +117,14 @@ public class GooseChatController {
             // Generate session ID with prefix for Goose named sessions
             // This creates names like "chat-a1b2c3d4" which Goose stores in its SQLite DB
             String sessionId = SESSION_PREFIX + UUID.randomUUID().toString().substring(0, 8);
+            
+            // #region agent log
+            try {
+                java.nio.file.Files.write(java.nio.file.Paths.get("/Users/orenpenso/git/tanzu-agent/.cursor/debug.log"), 
+                    (java.time.Instant.now().toString() + "|GooseChatController.java:100|createSession|SESSION_ID_GENERATED|hypothesisId:A|data:{\"sessionId\":\"" + sessionId + "\"}\n").getBytes(), 
+                    java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+            } catch (Exception e) {}
+            // #endregion
             
             // Apply custom configuration if provided
             long inactivityTimeoutMinutes = 30; // default
@@ -109,6 +137,24 @@ public class GooseChatController {
                 }
                 provider = request.provider();
                 model = request.model();
+                
+                // Validate provider/model combination if both are provided
+                if (provider != null && model != null) {
+                    if (!providerConfiguration.validateProviderModel(provider, model)) {
+                        logger.warn("Invalid provider/model combination: {}/{}", provider, model);
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                            .body(new CreateSessionResponse(null, false, 
+                                String.format("Invalid provider/model combination: %s/%s", provider, model)));
+                    }
+                } else if (provider != null) {
+                    // Validate provider exists and is enabled
+                    if (providerConfiguration.getProviderConfig(provider) == null) {
+                        logger.warn("Provider not available: {}", provider);
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                            .body(new CreateSessionResponse(null, false, 
+                                String.format("Provider not available: %s", provider)));
+                    }
+                }
             }
 
             ConversationSession session = new ConversationSession(
@@ -119,6 +165,14 @@ public class GooseChatController {
             );
             
             sessions.put(sessionId, session);
+            
+            // #region agent log
+            try {
+                java.nio.file.Files.write(java.nio.file.Paths.get("/Users/orenpenso/git/tanzu-agent/.cursor/debug.log"), 
+                    (java.time.Instant.now().toString() + "|GooseChatController.java:122|createSession|SESSION_STORED|hypothesisId:A|data:{\"sessionId\":\"" + sessionId + "\",\"sessionsSize\":" + sessions.size() + "}\n").getBytes(), 
+                    java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+            } catch (Exception e) {}
+            // #endregion
             
             logger.info("Created conversation session: {} with provider: {}", sessionId, provider);
             return ResponseEntity.status(HttpStatus.CREATED)
@@ -164,6 +218,14 @@ public class GooseChatController {
             HttpServletResponse response) {
         logger.info("Streaming message to session {}: {} chars", sessionId, message.length());
         
+            // #region agent log
+            try {
+                java.nio.file.Files.write(java.nio.file.Paths.get("/Users/orenpenso/git/tanzu-agent/.cursor/debug.log"), 
+                    (java.time.Instant.now().toString() + "|GooseChatController.java:161|streamMessage|ENTRY|hypothesisId:C|data:{\"sessionId\":\"" + sessionId + "\",\"messageLength\":" + message.length() + "}\n").getBytes(), 
+                    java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+            } catch (Exception e) {}
+            // #endregion
+        
         // Disable buffering for SSE - critical for Cloud Foundry and reverse proxies
         // Note: Do NOT set Transfer-Encoding manually - Tomcat adds it automatically
         // and setting it twice causes "too many transfer encodings" error in Go Router
@@ -178,6 +240,13 @@ public class GooseChatController {
             try {
                 if (!executor.isAvailable()) {
                     logger.error("Goose CLI is not available");
+                    // #region agent log
+                    try {
+                        java.nio.file.Files.write(java.nio.file.Paths.get("/Users/orenpenso/git/tanzu-agent/.cursor/debug.log"), 
+                            (java.time.Instant.now().toString() + "|GooseChatController.java:180|streamMessage|GOOSE_NOT_AVAILABLE|hypothesisId:B|data:{\"sessionId\":\"" + sessionId + "\"}\n").getBytes(), 
+                            java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+                    } catch (Exception e) {}
+                    // #endregion
                     emitter.send(SseEmitter.event()
                         .name("error")
                         .data("Goose CLI is not available"));
@@ -186,8 +255,22 @@ public class GooseChatController {
                 }
 
                 ConversationSession session = sessions.get(sessionId);
+                    // #region agent log
+                    try {
+                        java.nio.file.Files.write(java.nio.file.Paths.get("/Users/orenpenso/git/tanzu-agent/.cursor/debug.log"), 
+                            (java.time.Instant.now().toString() + "|GooseChatController.java:189|streamMessage|SESSION_LOOKUP|hypothesisId:A|data:{\"sessionId\":\"" + sessionId + "\",\"sessionFound\":" + (session != null) + ",\"sessionsSize\":" + sessions.size() + "}\n").getBytes(), 
+                            java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+                    } catch (Exception e) {}
+                    // #endregion
                 if (session == null || !isSessionActive(sessionId)) {
                     logger.error("Session {} is not active or does not exist", sessionId);
+                    // #region agent log
+                    try {
+                        java.nio.file.Files.write(java.nio.file.Paths.get("/Users/orenpenso/git/tanzu-agent/.cursor/debug.log"), 
+                            (java.time.Instant.now().toString() + "|GooseChatController.java:191|streamMessage|SESSION_NOT_FOUND|hypothesisId:A|data:{\"sessionId\":\"" + sessionId + "\",\"sessionNull\":" + (session == null) + "}\n").getBytes(), 
+                            java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+                    } catch (Exception e) {}
+                    // #endregion
                     emitter.send(SseEmitter.event()
                         .name("error")
                         .data("Session not found or has expired"));
@@ -206,12 +289,28 @@ public class GooseChatController {
                 // Build options for this session
                 // Priority: 1. GenAI service (if available), 2. Session config, 3. Environment
                 GooseOptions options = buildGooseOptions(session);
+                
+                // #region agent log
+                try {
+                    java.nio.file.Files.write(java.nio.file.Paths.get("/Users/orenpenso/git/tanzu-agent/.cursor/debug.log"), 
+                        (java.time.Instant.now().toString() + "|GooseChatController.java:209|streamMessage|BEFORE_GOOSE_EXEC|hypothesisId:B|data:{\"sessionId\":\"" + sessionId + "\",\"options\":\"" + options.toString().replace("\"", "'") + "\"}\n").getBytes(), 
+                        java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+                } catch (Exception e) {}
+                // #endregion
 
                 // Execute Goose with streaming JSON output for token-level streaming
                 boolean isFirstMessage = session.messageCount() == 0;
                 jsonStream = executor.executeInSessionStreamingJson(
                     sessionId, message, !isFirstMessage, options
                 );
+                
+                // #region agent log
+                try {
+                    java.nio.file.Files.write(java.nio.file.Paths.get("/Users/orenpenso/git/tanzu-agent/.cursor/debug.log"), 
+                        (java.time.Instant.now().toString() + "|GooseChatController.java:214|streamMessage|AFTER_GOOSE_EXEC|hypothesisId:B|data:{\"sessionId\":\"" + sessionId + "\",\"jsonStreamNull\":" + (jsonStream == null) + "}\n").getBytes(), 
+                        java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+                } catch (Exception e) {}
+                // #endregion
                 
                 // Process each JSON event as it arrives
                 // Batch tokens to work around proxy buffering (e.g., Cloud Foundry Go Router)
@@ -223,8 +322,23 @@ public class GooseChatController {
                 
                 jsonStream.forEach(jsonLine -> {
                     try {
+                        // #region agent log
+                        try {
+                            java.nio.file.Files.write(java.nio.file.Paths.get("/Users/orenpenso/git/tanzu-agent/.cursor/debug.log"), 
+                                (java.time.Instant.now().toString() + "|GooseChatController.java:225|streamMessage|JSON_LINE_RECEIVED|hypothesisId:D|data:{\"sessionId\":\"" + sessionId + "\",\"jsonLineLength\":" + jsonLine.length() + "}\n").getBytes(), 
+                                java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+                        } catch (Exception e) {}
+                        // #endregion
                         JsonNode event = objectMapper.readTree(jsonLine);
                         String eventType = event.has("type") ? event.get("type").asText() : "";
+                        
+                        // #region agent log
+                        try {
+                            java.nio.file.Files.write(java.nio.file.Paths.get("/Users/orenpenso/git/tanzu-agent/.cursor/debug.log"), 
+                                (java.time.Instant.now().toString() + "|GooseChatController.java:228|streamMessage|JSON_PARSED|hypothesisId:D|data:{\"sessionId\":\"" + sessionId + "\",\"eventType\":\"" + eventType + "\"}\n").getBytes(), 
+                                java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+                        } catch (Exception e) {}
+                        // #endregion
                         
                         switch (eventType) {
                             case "message" -> {
@@ -312,6 +426,13 @@ public class GooseChatController {
                     
             } catch (GooseExecutionException e) {
                 logger.error("Goose execution failed for session {}", sessionId, e);
+                // #region agent log
+                try {
+                    java.nio.file.Files.write(java.nio.file.Paths.get("/Users/orenpenso/git/tanzu-agent/.cursor/debug.log"), 
+                        (java.time.Instant.now().toString() + "|GooseChatController.java:314|streamMessage|GOOSE_EXEC_EXCEPTION|hypothesisId:B|data:{\"sessionId\":\"" + sessionId + "\",\"error\":\"" + e.getMessage().replace("\"", "'") + "\"}\n").getBytes(), 
+                        java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+                } catch (Exception ex) {}
+                // #endregion
                 try {
                     emitter.send(SseEmitter.event()
                         .name("error")
@@ -322,6 +443,13 @@ public class GooseChatController {
                 emitter.completeWithError(e);
             } catch (Exception e) {
                 logger.error("Unexpected error during message send to session {}", sessionId, e);
+                // #region agent log
+                try {
+                    java.nio.file.Files.write(java.nio.file.Paths.get("/Users/orenpenso/git/tanzu-agent/.cursor/debug.log"), 
+                        (java.time.Instant.now().toString() + "|GooseChatController.java:324|streamMessage|UNEXPECTED_EXCEPTION|hypothesisId:C|data:{\"sessionId\":\"" + sessionId + "\",\"error\":\"" + e.getMessage().replace("\"", "'") + "\",\"class\":\"" + e.getClass().getName() + "\"}\n").getBytes(), 
+                        java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+                } catch (Exception ex) {}
+                // #endregion
                 try {
                     emitter.send(SseEmitter.event()
                         .name("error")
@@ -581,8 +709,9 @@ public class GooseChatController {
      * Priority:
      * <ol>
      *   <li>GenAI service (if bound and has TOOLS-capable model)</li>
-     *   <li>Session-specified provider/model</li>
+     *   <li>Session-specified provider/model (from ProviderConfiguration)</li>
      *   <li>Environment variables (GOOSE_PROVIDER, GOOSE_MODEL)</li>
+     *   <li>Default from `.goose-config.yml`</li>
      * </ol>
      * </p>
      */
@@ -595,19 +724,51 @@ public class GooseChatController {
         if (genaiModel.isPresent()) {
             var modelInfo = genaiModel.get();
             logger.debug("Using GenAI model: {} from {}", modelInfo.model(), modelInfo.baseUrl());
+            
+            // #region agent log
+            try {
+                java.nio.file.Files.write(java.nio.file.Paths.get("/Users/orenpenso/git/tanzu-agent/.cursor/debug.log"), 
+                    (java.time.Instant.now().toString() + "|GooseChatController.java:597|buildGooseOptions|USING_GENAI|hypothesisId:F|data:{\"model\":\"" + modelInfo.model() + "\",\"baseUrl\":\"" + (modelInfo.baseUrl() != null ? modelInfo.baseUrl().replace("\"", "'") : "null") + "\",\"apiKeyPresent\":" + (modelInfo.apiKey() != null && !modelInfo.apiKey().isEmpty()) + "}\n").getBytes(), 
+                    java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+            } catch (Exception e) {}
+            // #endregion
+            
             optionsBuilder
                 .provider("openai")  // GenAI provides OpenAI-compatible API
                 .model(modelInfo.model())
                 .apiKey(modelInfo.apiKey())
                 .baseUrl(modelInfo.baseUrl());
-        } else {
-            // Fall back to session config or environment
-            if (session.provider() != null && !session.provider().isEmpty()) {
+        } else if (session.provider() != null && !session.provider().isEmpty()) {
+            // Use session-specified provider from ProviderConfiguration
+            ProviderConfiguration.ProviderInfo providerConfig = providerConfiguration.getProviderConfig(session.provider());
+            if (providerConfig != null) {
+                String apiKey = providerConfiguration.getApiKey(session.provider());
+                String baseUrl = providerConfiguration.getBaseUrl(session.provider());
+                
+                logger.debug("Using configured provider: {} with model: {}", session.provider(), session.model());
+                
                 optionsBuilder.provider(session.provider());
+                if (session.model() != null && !session.model().isEmpty()) {
+                    optionsBuilder.model(session.model());
+                }
+                if (apiKey != null) {
+                    optionsBuilder.apiKey(apiKey);
+                }
+                if (baseUrl != null) {
+                    optionsBuilder.baseUrl(baseUrl);
+                }
+            } else {
+                // Fall back to environment variables or defaults
+                logger.debug("Provider {} not found in configuration, using environment/defaults", session.provider());
+                optionsBuilder.provider(session.provider());
+                if (session.model() != null && !session.model().isEmpty()) {
+                    optionsBuilder.model(session.model());
+                }
             }
-            if (session.model() != null && !session.model().isEmpty()) {
-                optionsBuilder.model(session.model());
-            }
+        } else {
+            // No session provider specified - use environment or defaults
+            // This maintains backward compatibility
+            logger.debug("No provider specified in session, using environment/defaults");
         }
 
         return optionsBuilder.build();

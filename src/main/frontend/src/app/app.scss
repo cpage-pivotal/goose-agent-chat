@@ -4,6 +4,7 @@
   height: 100vh;
   width: 100vw;
   overflow: hidden;
+  background: linear-gradient(135deg, var(--fleet-gray-50, #FAFAFA) 0%, #FFFFFF 100%);
 }
 
 .app-toolbar {
@@ -11,19 +12,27 @@
   align-items: center;
   gap: var(--mat-sys-spacing-3, 12px);
   flex-shrink: 0;
+  padding: 0 var(--mat-sys-spacing-4, 16px);
+  box-shadow: 0 2px 8px rgba(0, 102, 204, 0.15);
+  background: linear-gradient(135deg, #0066CC 0%, #7B68EE 30%, #00B8D4 60%, #0066CC 100%);
   animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   
   .toolbar-icon {
-    font-size: 24px;
-    width: 24px;
-    height: 24px;
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+    color: white;
     animation: rotateIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.1s backwards;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
   }
   
   .toolbar-title {
     font: var(--mat-sys-title-large);
-    font-weight: 500;
+    font-weight: 600;
+    color: white;
+    letter-spacing: 0.3px;
     animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.2s backwards;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   }
 }
 
@@ -33,6 +42,7 @@
   display: flex;
   flex-direction: column;
   animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.1s backwards;
+  background: transparent;
 }
 
 // Material Design Animations
@@ -77,4 +87,3 @@
     transition-duration: 0.01ms !important;
   }
 }
-

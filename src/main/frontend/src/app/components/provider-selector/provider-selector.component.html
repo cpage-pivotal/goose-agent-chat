@@ -1,0 +1,60 @@
+<div class="provider-selector">
+  <div class="selector-group">
+    <!-- Provider Selection -->
+    <mat-form-field appearance="outline" class="provider-field">
+      <mat-label>AI Provider</mat-label>
+      <mat-select 
+        [value]="selectedProvider()" 
+        (selectionChange)="onProviderChange($event.value)"
+        [disabled]="loadingProviders()">
+        @if (loadingProviders()) {
+          <mat-option disabled>
+            <mat-spinner diameter="20" class="inline-spinner"></mat-spinner>
+            <span class="loading-text">Loading providers...</span>
+          </mat-option>
+        } @else {
+          @for (provider of availableProviders(); track provider.name) {
+            <mat-option [value]="provider.name">
+              {{ provider.displayName }}
+              @if (provider.modelCount > 0) {
+                <span class="model-count">({{ provider.modelCount }} models)</span>
+              }
+            </mat-option>
+          }
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <!-- Model Selection -->
+    <mat-form-field appearance="outline" class="model-field">
+      <mat-label>Model</mat-label>
+      <mat-select 
+        [value]="selectedModel()" 
+        (selectionChange)="onModelChange($event.value)"
+        [disabled]="loadingModels() || !selectedProvider() || availableModels().length === 0">
+        @if (loadingModels()) {
+          <mat-option disabled>
+            <mat-spinner diameter="20" class="inline-spinner"></mat-spinner>
+            <span class="loading-text">Loading models...</span>
+          </mat-option>
+        } @else if (!selectedProvider()) {
+          <mat-option disabled>Select a provider first</mat-option>
+        } @else if (availableModels().length === 0) {
+          <mat-option disabled>No models available</mat-option>
+        } @else {
+          @for (model of availableModels(); track model.name) {
+            <mat-option [value]="model.name">
+              {{ model.displayName }}
+            </mat-option>
+          }
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  @if (error()) {
+    <div class="error-message">
+      {{ error() }}
+    </div>
+  }
+</div>

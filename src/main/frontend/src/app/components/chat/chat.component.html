@@ -6,6 +6,43 @@
   />
 
   <div class="chat-container">
+    <!-- Provider Selector (always visible for provider/model selection) -->
+    <div class="provider-selector-container">
+      <app-provider-selector #providerSelector />
+      <div class="provider-selector-actions">
+        @if (!sessionId()) {
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="startNewConversation()"
+            [disabled]="isCreatingSession() || !gooseAvailable || !providerSelector?.getSelectedProvider()"
+            class="start-conversation-button"
+          >
+            <mat-icon>play_arrow</mat-icon>
+            Start Conversation with Selected Provider/Model
+          </button>
+          @if (isCreatingSession()) {
+            <mat-spinner diameter="20" class="inline-spinner"></mat-spinner>
+            <span class="creating-session-text">Creating session...</span>
+          }
+        } @else {
+          <div class="provider-selector-note">
+            <mat-icon>info</mat-icon>
+            <span>Active session using {{ activeConversationProviderLabel }} / {{ activeConversationModelLabel }}</span>
+            <button
+              mat-stroked-button
+              color="primary"
+              (click)="startNewConversation()"
+              [disabled]="isCreatingSession()"
+              class="change-provider-button"
+            >
+              Change Provider/Model
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+    
     <!-- Header with session controls -->
     <div class="chat-header">
       <div class="header-content">
@@ -22,7 +59,7 @@
           @if (gooseAvailable) {
             <span class="provider-badge" [class.genai-service]="isGenaiService">
               <mat-icon class="provider-icon">{{ isGenaiService ? 'cloud' : 'smart_toy' }}</mat-icon>
-              {{ gooseProvider }} · {{ gooseModel }}
+              {{ activeConversationProviderLabel }} · {{ activeConversationModelLabel }}
               @if (isGenaiService) {
                 <span class="source-badge">GenAI</span>
               }
@@ -74,7 +111,7 @@
           @if (gooseAvailable) {
             <p class="status-text">Goose v{{ gooseVersion }} is ready</p>
             <p class="provider-info">
-              Provider: {{ gooseProvider }} | Model: {{ gooseModel }}
+              Provider: {{ activeConversationProviderLabel }} | Model: {{ activeConversationModelLabel }}
               @if (isGenaiService) {
                 <span class="source-indicator">(via GenAI Service)</span>
               }
@@ -123,7 +160,7 @@
           (keypress)="onKeyPress($event)"
           [disabled]="isStreaming() || !gooseAvailable || !sessionId()"
           rows="3"
-          placeholder="Ask Goose anything..."
+          [placeholder]="sessionId() ? 'Ask Goose anything...' : 'Select a provider/model and start a conversation first'"
         ></textarea>
       </mat-form-field>
       <button

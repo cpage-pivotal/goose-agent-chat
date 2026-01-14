@@ -1,0 +1,129 @@
+.provider-selector {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mat-sys-spacing-2, 8px);
+  padding: var(--mat-sys-spacing-2, 8px);
+  // Let the parent container provide the main gradient.
+  // Keep this wrapper neutral so the *white* dropdown fields stand out cleanly.
+  background: transparent;
+  border-radius: 8px;
+  border: 0;
+}
+
+.selector-group {
+  display: flex;
+  flex-direction: row;
+  gap: var(--mat-sys-spacing-2, 8px);
+  flex-wrap: wrap;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+}
+
+.provider-field,
+.model-field {
+  flex: 1;
+  min-width: 200px;
+  
+  @media (max-width: 768px) {
+    width: 100%;
+  }
+}
+
+.inline-spinner {
+  display: inline-block;
+  margin-right: var(--mat-sys-spacing-1, 4px);
+  vertical-align: middle;
+}
+
+.loading-text {
+  vertical-align: middle;
+  margin-left: var(--mat-sys-spacing-1, 4px);
+}
+
+.model-count {
+  font-size: 0.85em;
+  color: rgba(0, 0, 0, 0.6);
+  margin-left: var(--mat-sys-spacing-1, 4px);
+}
+
+.error-message {
+  padding: var(--mat-sys-spacing-1, 4px) var(--mat-sys-spacing-2, 8px);
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  border-radius: 4px;
+  color: #f44336;
+  font-size: 0.875rem;
+  margin-top: var(--mat-sys-spacing-1, 4px);
+}
+
+// Material form field styling to match Tanzu theme
+::ng-deep {
+  .provider-selector {
+    .mat-mdc-form-field {
+      .mat-mdc-text-field-wrapper {
+        // White dropdown surface, per request
+        background-color: #ffffff;
+        border-radius: 10px;
+      }
+      
+      .mat-mdc-form-field-label {
+        color: rgba(0, 0, 0, 0.75);
+      }
+      
+      &.mat-focused .mat-mdc-form-field-label {
+        // Keep focus consistent with primary brand color
+        color: var(--mat-sys-primary, #0066CC);
+      }
+
+      // Outline/border color tuning for readability on a darker gradient background
+      .mdc-notched-outline__leading,
+      .mdc-notched-outline__notch,
+      .mdc-notched-outline__trailing {
+        border-color: rgba(0, 0, 0, 0.22);
+      }
+
+      &.mat-focused {
+        .mdc-notched-outline__leading,
+        .mdc-notched-outline__notch,
+        .mdc-notched-outline__trailing {
+          border-color: rgba(0, 102, 204, 0.65);
+        }
+      }
+    }
+    
+    .mat-mdc-select {
+      color: rgba(0, 0, 0, 0.9);
+    }
+    
+    .mat-mdc-select-arrow {
+      color: rgba(0, 0, 0, 0.55);
+    }
+  }
+
+  // The select dropdown panel is rendered in the global overlay container.
+  // Force it to white + black text so it matches the fields.
+  .cdk-overlay-container {
+    .mat-mdc-select-panel {
+      background: #ffffff;
+      color: rgba(0, 0, 0, 0.9);
+      border: 1px solid rgba(0, 0, 0, 0.12);
+    }
+
+    .mat-mdc-option {
+      .mdc-list-item__primary-text {
+        color: rgba(0, 0, 0, 0.9);
+      }
+
+      // Subtle hover/active background
+      &:hover:not(.mdc-list-item--disabled) {
+        background: rgba(0, 102, 204, 0.08);
+      }
+    }
+
+    .mat-mdc-option.mdc-list-item--selected:not(.mdc-list-item--disabled) {
+      background: rgba(0, 102, 204, 0.12);
+    }
+  }
+}

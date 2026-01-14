@@ -12,6 +12,7 @@ import { MarkdownComponent } from 'ngx-markdown';
 import { ChatService, ChatMessage, HealthInfo } from '../../services/chat.service';
 import { ActivityPanelComponent } from '../activity-panel/activity-panel.component';
 import { ConfigPanelComponent } from '../config-panel/config-panel.component';
+import { ProviderSelectorComponent } from '../provider-selector/provider-selector.component';
 
 @Component({
   selector: 'app-chat',
@@ -27,13 +28,15 @@ import { ConfigPanelComponent } from '../config-panel/config-panel.component';
     MatSnackBarModule,
     MarkdownComponent,
     ActivityPanelComponent,
-    ConfigPanelComponent
+    ConfigPanelComponent,
+    ProviderSelectorComponent
   ],
   templateUrl: './chat.component.html',
   styleUrl: './chat.component.scss'
 })
 export class ChatComponent {
   @ViewChild('messagesContainer') private messagesContainer!: ElementRef;
+  @ViewChild(ProviderSelectorComponent) private providerSelector!: ProviderSelectorComponent;
   
   protected messages = signal<ChatMessage[]>([]);
   protected userInput = signal('');
@@ -43,6 +46,11 @@ export class ChatComponent {
   protected isCreatingSession = signal(false);
   protected activityPanelCollapsed = signal(false);
   protected configPanelCollapsed = signal(false);
+
+  // Tracks the provider/model actually used for the currently active session.
+  // This is set when we create the session (based on the dropdown selection).
+  protected activeSessionProviderLabel = signal<string | null>(null);
+  protected activeSessionModelLabel = signal<string | null>(null);
   
   // Expose activities and todos from the service
   protected activities = computed(() => this.chatService.activities());
@@ -66,13 +74,8 @@ export class ChatComponent {
       });
     });
 
-    // Automatically create a session on component init if Goose is available
-    effect(() => {
-      const health = this.healthInfo();
-      if (health?.available && !this.sessionId() && !this.isCreatingSession()) {
-        this.startNewConversation();
-      }
-    });
+    // Don't auto-create session - let user select provider/model first
+    // User can manually start conversation after selecting provider/model
   }
 
   protected get gooseAvailable(): boolean {
@@ -103,6 +106,22 @@ export class ChatComponent {
     return this.healthInfo()?.source === 'genai-service';
   }
 
+  protected get activeConversationProviderLabel(): string {
+    // If GenAI service is bound, it takes precedence and may ignore UI selection.
+    // In that case, prefer the health-indicated provider/model.
+    if (this.isGenaiService) {
+      return this.gooseProvider;
+    }
+    return this.activeSessionProviderLabel() ?? this.gooseProvider;
+  }
+
+  protected get activeConversationModelLabel(): string {
+    if (this.isGenaiService) {
+      return this.gooseModel;
+    }
+    return this.activeSessionModelLabel() ?? this.gooseModel;
+  }
+
   /**
    * Start a new conversation session
    */
@@ -120,9 +139,25 @@ export class ChatComponent {
         await this.chatService.closeSession(currentSessionId);
       }
 
-      // Create new session
-      const newSessionId = await this.chatService.createSession();
+      // Get selected provider/model from provider selector
+      const selectedProvider = this.providerSelector?.getSelectedProvider();
+      const selectedModel = this.providerSelector?.getSelectedModel();
+      const selectedProviderLabel = this.providerSelector?.getProviderDisplayName() || selectedProvider || null;
+      const selectedModelLabel = this.providerSelector?.getModelDisplayName() || selectedModel || null;
+      
+      // Create new session with selected provider/model
+      const newSessionId = await this.chatService.createSession(selectedProvider || undefined, selectedModel || undefined);
       this.sessionId.set(newSessionId);
+
+      // Persist what was selected for this session (so header can reflect it).
+      // If GenAI service is bound, keep using health-indicated model/provider.
+      if (!this.isGenaiService) {
+        this.activeSessionProviderLabel.set(selectedProviderLabel);
+        this.activeSessionModelLabel.set(selectedModelLabel);
+      } else {
+        this.activeSessionProviderLabel.set(null);
+        this.activeSessionModelLabel.set(null);
+      }
       
       // Clear messages and todos for new conversation
       this.messages.set([]);
@@ -161,6 +196,8 @@ export class ChatComponent {
     try {
       await this.chatService.closeSession(currentSessionId);
       this.sessionId.set(null);
+      this.activeSessionProviderLabel.set(null);
+      this.activeSessionModelLabel.set(null);
       this.messages.set([]);
       this.chatService.clearTodos();
       this.chatService.clearActivities();

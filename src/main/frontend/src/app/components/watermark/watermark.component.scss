@@ -1,0 +1,36 @@
+.watermark {
+  position: fixed;
+  top: var(--mat-sys-spacing-3, 12px);
+  right: var(--mat-sys-spacing-3, 12px);
+  z-index: 1000;
+  pointer-events: none;
+  user-select: none;
+  
+  .watermark-text {
+    font-size: 11px;
+    font-weight: 500;
+    color: white;
+    opacity: 0.85;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-family: 'Roboto', sans-serif;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    // Subtle hover effect for better visibility when needed
+    .watermark:hover & {
+      opacity: 1;
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .watermark {
+    top: var(--mat-sys-spacing-2, 8px);
+    right: var(--mat-sys-spacing-2, 8px);
+    
+    .watermark-text {
+      font-size: 10px;
+    }
+  }
+}

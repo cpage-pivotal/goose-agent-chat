@@ -1,14 +1,10 @@
-# Goose Configuration for goose-agent-chat
+# Goose Configuration for tanzu-agent
 # This file configures default Goose behavior when running in Cloud Foundry
 #
 # See: https://block.github.io/goose/docs/guides/configuration-files/
-
-# LLM Provider configuration
-# Supported providers: openai, anthropic, google, databricks, ollama
-provider: openai
-
-# Model to use with the provider
-model: gpt-5.2-chat-latest
+#
+# Note: Provider/model configuration is now managed via providers-config.yml
+# and the multi-provider UI. GenAI service binding (if present) takes precedence.
 
 # Extensions to enable by default
 extensions:
@@ -19,3 +15,104 @@ extensions:
 session:
   # Maximum turns before requiring user input (prevents runaway sessions)
   max_turns: 100
+
+# Skills - reusable instruction sets for Goose
+# Skills are loaded from a centralized Git repository for easier management
+# Update the repository URL below to point to your skills marketplace repository
+skills:
+  # Development Best Practices
+  - name: code-review
+    source: https://github.com/0pens0/tanzu-skills-marketplace.git
+    branch: main
+    path: skills/code-review
+
+  - name: testing-strategies
+    source: https://github.com/0pens0/tanzu-skills-marketplace.git
+    branch: main
+    path: skills/testing-strategies
+
+  - name: debugging-techniques
+    source: https://github.com/0pens0/tanzu-skills-marketplace.git
+    branch: main
+    path: skills/debugging-techniques
+
+  - name: refactoring-guidelines
+    source: https://github.com/0pens0/tanzu-skills-marketplace.git
+    branch: main
+    path: skills/refactoring-guidelines
+
+  - name: error-handling-patterns
+    source: https://github.com/0pens0/tanzu-skills-marketplace.git
+    branch: main
+    path: skills/error-handling-patterns
+
+  # API & Architecture
+  - name: api-design-best-practices
+    source: https://github.com/0pens0/tanzu-skills-marketplace.git
+    branch: main
+    path: skills/api-design-best-practices
+
+  - name: documentation-writing
+    source: https://github.com/0pens0/tanzu-skills-marketplace.git
+    branch: main
+    path: skills/documentation-writing
+
+  # Security & Performance
+  - name: security-best-practices
+    source: https://github.com/0pens0/tanzu-skills-marketplace.git
+    branch: main
+    path: skills/security-best-practices
+
+  - name: performance-optimization
+    source: https://github.com/0pens0/tanzu-skills-marketplace.git
+    branch: main
+    path: skills/performance-optimization
+
+  # Workflow & Framework
+  - name: git-workflow-best-practices
+    source: https://github.com/0pens0/tanzu-skills-marketplace.git
+    branch: main
+    path: skills/git-workflow-best-practices
+
+  - name: spring-boot-best-practices
+    source: https://github.com/0pens0/tanzu-skills-marketplace.git
+    branch: main
+    path: skills/spring-boot-best-practices
+
+  # New plugins from Claude marketplace
+  - name: cf-space-auditor
+    source: https://github.com/0pens0/tanzu-skills-marketplace.git
+    branch: main
+    path: skills/cf-space-auditor
+
+  - name: mailgun
+    source: https://github.com/0pens0/tanzu-skills-marketplace.git
+    branch: main
+    path: skills/mailgun
+
+  - name: google-chat-poster
+    source: https://github.com/0pens0/tanzu-skills-marketplace.git
+    branch: main
+    path: skills/google-chat-poster
+
+  - name: topical-limerick
+    source: https://github.com/0pens0/tanzu-skills-marketplace.git
+    branch: main
+    path: skills/topical-limerick
+
+# MCP Servers - Model Context Protocol servers for extended capabilities
+# Note: MCP servers discovered from bound Cloud Foundry services are automatically
+# merged with servers configured here. Discovered servers take precedence.
+mcpServers:
+  - name: tanzu-platform
+    type: streamable_http
+    url: "https://tanzu-mcp-server.apps.tp.penso.io/mcp"
+  - name: github-mcp-server
+    type: streamable_http
+    url: "https://github-mcp-server.apps.tp.penso.io/mcp"
+    headers:
+      # Do NOT hardcode tokens here. Set GITHUB_TOKEN (or use CredHub) at runtime.
+      Authorization: "Bearer ${GITHUB_TOKEN}"
+  - name: bosh
+    type: streamable_http
+    url: "https://bosh-mcp-server.apps.tp.penso.io/mcp"

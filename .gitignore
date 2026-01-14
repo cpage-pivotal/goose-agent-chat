@@ -1,5 +1,9 @@
 # Secrets and credentials
 /vars.yaml
+manifest.yml
+manifest.yaml
+.goose-config.yml
+.goose-config.yaml
 
 # Maven build output
 /target/

@@ -1,41 +1,87 @@
-
-// Include theming for Angular Material with `mat.theme()`.
-// This Sass mixin will define CSS variables that are used for styling Angular Material
-// components according to the Material 3 design spec.
-// Learn more about theming and how to use it for your application's
-// custom components at https://material.angular.dev/guide/theming
 @use '@angular/material' as mat;
 
+// Tanzu Fleet Color Palette Variables
+$fleet-primary-blue: #0066CC;
+$fleet-primary-teal: #00B8D4;
+$fleet-bright-orange: #ffd766;
+$fleet-purple: #7B68EE;
+$fleet-success-green: #00C853;
+$fleet-error-red: #D32F2F;
+
+// Neutral Grays
+$fleet-gray-50: #FAFAFA;
+$fleet-gray-100: #F5F5F5;
+$fleet-gray-200: #EEEEEE;
+$fleet-gray-300: #E0E0E0;
+$fleet-gray-400: #BDBDBD;
+$fleet-gray-500: #9E9E9E;
+$fleet-gray-600: #757575;
+$fleet-gray-700: #616161;
+$fleet-gray-800: #424242;
+$fleet-gray-900: #212121;
+
 html {
-  // Goose theme - using teal/amber palette for a distinctive look
   @include mat.theme((
     color: (
-      primary: mat.$cyan-palette,
-      tertiary: mat.$orange-palette,
+      primary: mat.$blue-palette, // Using a default Material palette, overridden below
+      tertiary: mat.$cyan-palette, // Using a default Material palette, overridden below
     ),
     typography: Roboto,
     density: 0,
   ));
+  
+  // Override Material 3 CSS variables with Tanzu Fleet colors
+  --mat-sys-primary: #{$fleet-primary-blue};
+  --mat-sys-on-primary: #FFFFFF;
+  --mat-sys-primary-container: #{lighten($fleet-primary-blue, 45%)}; // Light blue for containers
+  --mat-sys-on-primary-container: #{darken($fleet-primary-blue, 30%)}; // Dark text on primary container
+
+  --mat-sys-secondary: #{$fleet-primary-teal};
+  --mat-sys-on-secondary: #FFFFFF;
+  --mat-sys-secondary-container: #{lighten($fleet-primary-teal, 40%)};
+  --mat-sys-on-secondary-container: #{darken($fleet-primary-teal, 30%)};
+
+  --mat-sys-tertiary: #{$fleet-purple}; // Purple for tertiary
+  --mat-sys-on-tertiary: #FFFFFF;
+  --mat-sys-tertiary-container: #{lighten($fleet-purple, 40%)};
+  --mat-sys-on-tertiary-container: #{darken($fleet-purple, 30%)};
+
+  --mat-sys-error: #{$fleet-error-red};
+  --mat-sys-on-error: #FFFFFF;
+  --mat-sys-error-container: #{lighten($fleet-error-red, 40%)};
+  --mat-sys-on-error-container: #{darken($fleet-error-red, 30%)};
+
+  --mat-sys-surface: #FFFFFF;
+  --mat-sys-on-surface: #{$fleet-gray-900};
+  --mat-sys-surface-variant: #{$fleet-gray-100};
+  --mat-sys-on-surface-variant: #{$fleet-gray-700};
+  --mat-sys-surface-container-lowest: #{$fleet-gray-50};
+  --mat-sys-surface-container-low: #{$fleet-gray-100};
+  --mat-sys-surface-container: #{$fleet-gray-200};
+  --mat-sys-surface-container-high: #{$fleet-gray-300};
+  --mat-sys-surface-container-highest: #{$fleet-gray-400};
+
+  --mat-sys-outline: #{$fleet-gray-400};
+  --mat-sys-outline-variant: #{$fleet-gray-300};
+
+  // Custom Fleet CSS variables for direct use
+  --fleet-primary-blue: #{$fleet-primary-blue};
+  --fleet-primary-teal: #{$fleet-primary-teal};
+  --fleet-bright-orange: #{$fleet-bright-orange};
+  --fleet-purple: #{$fleet-purple};
+  --fleet-success-green: #{$fleet-success-green};
+  --fleet-error-red: #{$fleet-error-red};
+  --fleet-gray-50: #{$fleet-gray-50};
+  --fleet-gray-100: #{$fleet-gray-100};
+  --fleet-gray-900: #{$fleet-gray-900};
 }
 
 body {
-  // Default the application to a light color theme. This can be changed to
-  // `dark` to enable the dark color theme, or to `light dark` to defer to the
-  // user's system settings.
   color-scheme: light;
-
-  // Set a default background, font and text colors for the application using
-  // Angular Material's system-level CSS variables. Learn more about these
-  // variables at https://material.angular.dev/guide/system-variables
   background-color: var(--mat-sys-surface);
   color: var(--mat-sys-on-surface);
   font: var(--mat-sys-body-medium);
-
-  // Reset the user agent margin.
   margin: 0;
 }
-/* You can add global styles to this file, and also import other style files */
-
 html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
-

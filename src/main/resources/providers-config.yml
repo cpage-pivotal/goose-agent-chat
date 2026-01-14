@@ -1,0 +1,72 @@
+# Provider Configuration for Tanzu Agent
+# This file defines available AI providers and their models
+# API keys are resolved from environment variables specified in apiKeyEnv
+
+providers:
+  - name: openai
+    displayName: OpenAI
+    enabled: true
+    apiKeyEnv: OPENAI_API_KEY
+    baseUrl: null  # null = use default OpenAI API URL
+    models:
+      - name: gpt-5.2
+        displayName: GPT-5.2
+        enabled: true
+      - name: gpt-5-nano
+        displayName: GPT-5 Nano
+        enabled: true
+      - name: gpt-5-pro
+        displayName: GPT-5 Pro
+        enabled: true
+  
+  - name: anthropic
+    displayName: Anthropic Claude
+    enabled: true
+    apiKeyEnv: ANTHROPIC_API_KEY
+    baseUrl: null  # null = use default Anthropic API URL
+    models:
+      - name: claude-sonnet-4-5-20250929
+        displayName: Claude Sonnet 4.5
+        enabled: true
+      - name: claude-opus-4-5-20251101
+        displayName: Claude Opus 4.5
+        enabled: true
+      - name: claude-haiku-4-5-20251001
+        displayName: Claude 4.5 Haiku
+        enabled: true
+  
+  #- name: google
+  #  displayName: Google Gemini
+  #  enabled: false  # Disabled by default - enable when GOOGLE_API_KEY is configured
+  #  apiKeyEnv: GOOGLE_API_KEY
+  #  baseUrl: null
+  #  models:
+  #    - name: gemini-pro
+  #      displayName: Gemini Pro
+  #      enabled: true
+  #    - name: gemini-pro-vision
+  #      displayName: Gemini Pro Vision
+  #      enabled: true
+  
+  #- name: databricks
+  #  displayName: Databricks
+  #  enabled: false  # Disabled by default - enable when DATABRICKS_HOST and DATABRICKS_TOKEN are configured
+  #  apiKeyEnv: DATABRICKS_TOKEN
+  #  baseUrlEnv: DATABRICKS_HOST
+  #  models:
+  #    - name: databricks-meta-llama-3-1-70b-instruct
+  #      displayName: Llama 3.1 70B Instruct
+  #      enabled: true
+  
+  #- name: ollama
+  #  displayName: Ollama
+  #  enabled: false  # Disabled by default - enable when OLLAMA_HOST is configured
+  # apiKeyEnv: null
+  #  baseUrlEnv: OLLAMA_HOST
+  #  models:
+  #    - name: llama2
+  #      displayName: Llama 2
+  #      enabled: true
+  #    - name: mistral
+  #      displayName: Mistral
+  #      enabled: true

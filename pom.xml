@@ -9,10 +9,10 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>org.tanzu</groupId>
-    <artifactId>goose-agent-chat</artifactId>
+    <artifactId>tanzu-agent-chat</artifactId>
     <version>1.0.0</version>
-    <name>goose-agent-chat</name>
-    <description>Web chat interface for Goose AI agent</description>
+    <name>tanzu-agent-chat</name>
+    <description>Web chat interface for Tanzu AI agent</description>
 
     <properties>
         <java.version>21</java.version>
@@ -51,6 +51,10 @@
             <groupId>io.pivotal.cfenv</groupId>
             <artifactId>java-cfenv-boot-tanzu-genai</artifactId>
             <version>3.5.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-yaml</artifactId>
         </dependency>
 
         <dependency>

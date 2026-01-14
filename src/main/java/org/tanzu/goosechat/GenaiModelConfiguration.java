@@ -117,6 +117,14 @@ public class GenaiModelConfiguration {
             logger.info("GenAI locator apiKey present: {}, apiBase present: {}",
                     apiKey != null && !apiKey.isEmpty(),
                     apiBase != null && !apiBase.isEmpty());
+            
+            // #region agent log
+            try {
+                java.nio.file.Files.write(java.nio.file.Paths.get("/Users/orenpenso/git/tanzu-agent/.cursor/debug.log"), 
+                    (java.time.Instant.now().toString() + "|GenaiModelConfiguration.java:121|discoverModel|DISCOVERY_START|hypothesisId:F|data:{\"apiBase\":\"" + (apiBase != null ? apiBase.replace("\"", "'") : "null") + "\",\"apiKeyPresent\":" + (apiKey != null && !apiKey.isEmpty()) + "}\n").getBytes(), 
+                    java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+            } catch (Exception e) {}
+            // #endregion
 
             // Get TOOLS-capable models (required for Goose agent functionality)
             List<String> toolModels = locator.getModelNamesByCapability("TOOLS");
@@ -131,19 +139,112 @@ public class GenaiModelConfiguration {
                     modelName, toolModels.size());
 
             // Build the OpenAI-compatible base URL
-            // The apiBase from java-cfenv needs /openai appended for OpenAI wire format
+            // The apiBase from java-cfenv may include the model name in the path
+            // We need to extract just the base URL without the model path
             String openaiBaseUrl = apiBase;
+            
+            // #region agent log
+            try {
+                java.nio.file.Files.write(java.nio.file.Paths.get("/Users/orenpenso/git/tanzu-agent/.cursor/debug.log"), 
+                    (java.time.Instant.now().toString() + "|GenaiModelConfiguration.java:143|discoverModel|BEFORE_URL_CONSTRUCTION|hypothesisId:F|data:{\"apiBase\":\"" + (apiBase != null ? apiBase.replace("\"", "'") : "null") + "\",\"modelName\":\"" + modelName + "\"}\n").getBytes(), 
+                    java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+            } catch (Exception e) {}
+            // #endregion
+            
             if (openaiBaseUrl != null && !openaiBaseUrl.isEmpty()) {
-                if (!openaiBaseUrl.endsWith("/")) {
-                    openaiBaseUrl = openaiBaseUrl + "/";
+                // Remove model name from path if present (e.g., /OpenAI-GPT5-2-81a4d41)
+                // The apiBase might be like: https://genai-proxy.../OpenAI-GPT5-2-81a4d41
+                // We need: https://genai-proxy.../
+                try {
+                    java.net.URI uri = java.net.URI.create(openaiBaseUrl);
+                    String path = uri.getPath();
+                    
+                    // #region agent log
+                    try {
+                        java.nio.file.Files.write(java.nio.file.Paths.get("/Users/orenpenso/git/tanzu-agent/.cursor/debug.log"), 
+                            (java.time.Instant.now().toString() + "|GenaiModelConfiguration.java:152|discoverModel|URL_PARSED|hypothesisId:F|data:{\"originalPath\":\"" + (path != null ? path : "null") + "\",\"originalUrl\":\"" + openaiBaseUrl.replace("\"", "'") + "\"}\n").getBytes(), 
+                            java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+                    } catch (Exception e) {}
+                    // #endregion
+                    
+                    // If path contains model name pattern (e.g., /OpenAI-* or contains model name), remove it
+                    if (path != null && !path.isEmpty() && !path.equals("/")) {
+                        // Check if path ends with something that looks like a model identifier
+                        // Model names often contain dashes and alphanumeric characters
+                        String[] pathParts = path.split("/");
+                        if (pathParts.length > 0) {
+                            String lastPart = pathParts[pathParts.length - 1];
+                            // If last part looks like a model name (contains dashes, alphanumeric, matches model name pattern)
+                            // Check if it matches common patterns: OpenAI-*, GPT*, or contains the discovered model name
+                            boolean looksLikeModelName = (lastPart.contains("-") && 
+                                (lastPart.contains("GPT") || lastPart.contains("OpenAI") || 
+                                 lastPart.matches(".*[A-Z0-9-]+.*") || 
+                                 modelName != null && (lastPart.contains(modelName) || modelName.contains(lastPart))));
+                            
+                            if (looksLikeModelName) {
+                                // Reconstruct URL without the model name
+                                StringBuilder newPath = new StringBuilder();
+                                for (int i = 0; i < pathParts.length - 1; i++) {
+                                    if (!pathParts[i].isEmpty()) {
+                                        newPath.append("/").append(pathParts[i]);
+                                    }
+                                }
+                                if (newPath.length() == 0) {
+                                    newPath.append("/");
+                                }
+                                openaiBaseUrl = uri.getScheme() + "://" + uri.getAuthority() + newPath.toString();
+                                
+                                // #region agent log
+                                try {
+                                    java.nio.file.Files.write(java.nio.file.Paths.get("/Users/orenpenso/git/tanzu-agent/.cursor/debug.log"), 
+                                        (java.time.Instant.now().toString() + "|GenaiModelConfiguration.java:175|discoverModel|MODEL_NAME_REMOVED|hypothesisId:F|data:{\"removedPart\":\"" + lastPart + "\",\"newBaseUrl\":\"" + openaiBaseUrl.replace("\"", "'") + "\"}\n").getBytes(), 
+                                        java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+                                } catch (Exception e) {}
+                                // #endregion
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    logger.warn("Failed to parse apiBase URL: {}", openaiBaseUrl, e);
+                    // #region agent log
+                    try {
+                        java.nio.file.Files.write(java.nio.file.Paths.get("/Users/orenpenso/git/tanzu-agent/.cursor/debug.log"), 
+                            (java.time.Instant.now().toString() + "|GenaiModelConfiguration.java:182|discoverModel|URL_PARSE_ERROR|hypothesisId:F|data:{\"error\":\"" + e.getMessage().replace("\"", "'") + "\"}\n").getBytes(), 
+                            java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+                    } catch (Exception ex) {}
+                    // #endregion
                 }
-                openaiBaseUrl = openaiBaseUrl + "openai";
+                
+                // Append /openai for OpenAI wire format
+                // Check if URL already contains /openai to avoid double appending
+                if (!openaiBaseUrl.contains("/openai")) {
+                    if (!openaiBaseUrl.endsWith("/")) {
+                        openaiBaseUrl = openaiBaseUrl + "/";
+                    }
+                    openaiBaseUrl = openaiBaseUrl + "openai";
+                }
             }
+            
+            // #region agent log
+            try {
+                java.nio.file.Files.write(java.nio.file.Paths.get("/Users/orenpenso/git/tanzu-agent/.cursor/debug.log"), 
+                    (java.time.Instant.now().toString() + "|GenaiModelConfiguration.java:181|discoverModel|AFTER_URL_CONSTRUCTION|hypothesisId:F|data:{\"openaiBaseUrl\":\"" + (openaiBaseUrl != null ? openaiBaseUrl.replace("\"", "'") : "null") + "\"}\n").getBytes(), 
+                    java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+            } catch (Exception e) {}
+            // #endregion
 
             ModelInfo modelInfo = new ModelInfo(modelName, apiKey, openaiBaseUrl);
             logger.info("GenAI model configuration: model={}, baseUrl={}, apiKeyLength={}",
                     modelInfo.model(), modelInfo.baseUrl(), 
                     modelInfo.apiKey() != null ? modelInfo.apiKey().length() : 0);
+            
+            // #region agent log
+            try {
+                java.nio.file.Files.write(java.nio.file.Paths.get("/Users/orenpenso/git/tanzu-agent/.cursor/debug.log"), 
+                    (java.time.Instant.now().toString() + "|GenaiModelConfiguration.java:187|discoverModel|MODEL_INFO_CREATED|hypothesisId:F|data:{\"model\":\"" + modelInfo.model() + "\",\"baseUrl\":\"" + (modelInfo.baseUrl() != null ? modelInfo.baseUrl().replace("\"", "'") : "null") + "\"}\n").getBytes(), 
+                    java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+            } catch (Exception e) {}
+            // #endregion
 
             return modelInfo;
 

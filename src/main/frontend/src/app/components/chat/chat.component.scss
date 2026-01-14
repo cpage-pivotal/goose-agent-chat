@@ -22,6 +22,66 @@
   gap: var(--mat-sys-spacing-4, 16px);
 }
 
+.provider-selector-container {
+  padding: var(--mat-sys-spacing-3, 12px);
+  // Align with the top toolbar gradient, but make it a bit darker/richer
+  // so the white dropdowns pop with strong contrast.
+  background: linear-gradient(
+    135deg,
+    rgba(0, 102, 204, 0.26) 0%,
+    rgba(123, 104, 238, 0.22) 30%,
+    rgba(0, 184, 212, 0.20) 60%,
+    rgba(0, 102, 204, 0.26) 100%
+  );
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: var(--mat-sys-corner-medium, 8px);
+  margin-bottom: var(--mat-sys-spacing-2, 8px);
+  
+  .provider-selector-actions {
+    margin-top: var(--mat-sys-spacing-2, 8px);
+    display: flex;
+    align-items: center;
+    gap: var(--mat-sys-spacing-2, 8px);
+    flex-wrap: wrap;
+  }
+  
+  .start-conversation-button {
+    flex: 1;
+    min-width: 200px;
+  }
+  
+  .change-provider-button {
+    margin-left: auto;
+  }
+  
+  .provider-selector-note {
+    display: flex;
+    align-items: center;
+    gap: var(--mat-sys-spacing-1, 4px);
+    padding: var(--mat-sys-spacing-1, 4px);
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.8);
+    flex: 1;
+    
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: var(--mat-sys-primary);
+    }
+  }
+  
+  .inline-spinner {
+    display: inline-block;
+    margin-right: var(--mat-sys-spacing-1, 4px);
+  }
+  
+  .creating-session-text {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.875rem;
+  }
+}
+
 // Activity panel is rendered as a sibling, styles are in its own component
 
 .chat-header {

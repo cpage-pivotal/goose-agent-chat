@@ -215,6 +215,10 @@ export class ChatService {
       const encodedMessage = encodeURIComponent(message);
       const url = `${this.apiUrl}/sessions/${sessionId}/stream?message=${encodedMessage}`;
       
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/d1e9c33c-c922-4c3a-8863-bf6e1d969672',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat.service.ts:216',message:'EventSource connection starting',data:{sessionId,url,messageLength:message.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
+      
       const eventSource = new EventSource(url);
 
       // Handle token events - individual tokens as they arrive
@@ -300,6 +304,9 @@ export class ChatService {
 
       // Handle connection errors
       eventSource.onerror = () => {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/d1e9c33c-c922-4c3a-8863-bf6e1d969672',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat.service.ts:302',message:'EventSource onerror triggered',data:{sessionId,readyState:eventSource.readyState},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
+        // #endregion
         // Check if the connection was closed normally (after 'complete' event)
         if (eventSource.readyState === EventSource.CLOSED) {
           observer.complete();
@@ -308,6 +315,12 @@ export class ChatService {
           observer.error(new Error('Connection to server failed'));
         }
       };
+      
+      // #region agent log
+      eventSource.addEventListener('open', () => {
+        fetch('http://127.0.0.1:7243/ingest/d1e9c33c-c922-4c3a-8863-bf6e1d969672',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat.service.ts:310',message:'EventSource connection opened',data:{sessionId},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
+      });
+      // #endregion
 
       // Cleanup on unsubscribe
       return () => {
