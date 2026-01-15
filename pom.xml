@@ -45,13 +45,9 @@
         <dependency>
             <groupId>org.tanzu.goose</groupId>
             <artifactId>goose-cf-wrapper</artifactId>
-            <version>1.0.1</version>
+            <version>1.0.2</version>
         </dependency>
-        <dependency>
-            <groupId>io.pivotal.cfenv</groupId>
-            <artifactId>java-cfenv-boot-tanzu-genai</artifactId>
-            <version>3.5.0</version>
-        </dependency>
+        <!-- java-cfenv-boot-tanzu-genai is now provided transitively by goose-cf-wrapper -->
 
         <dependency>
             <groupId>org.springframework.boot</groupId>

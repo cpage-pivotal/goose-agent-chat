@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.tanzu.goose.cf.GooseExecutor;
 import org.tanzu.goose.cf.GooseExecutionException;
 import org.tanzu.goose.cf.GooseOptions;
+import org.tanzu.goose.cf.spring.GenaiModelConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
