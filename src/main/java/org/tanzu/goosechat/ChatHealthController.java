@@ -1,6 +1,5 @@
 package org.tanzu.goosechat;
 
-import org.tanzu.goose.cf.spring.GenaiModelConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,13 +15,10 @@ import java.util.Optional;
 public class ChatHealthController {
 
     private final Optional<GooseExecutor> executor;
-    private final GenaiModelConfiguration genaiModelConfiguration;
 
     public ChatHealthController(
-            @Autowired(required = false) GooseExecutor executor,
-            GenaiModelConfiguration genaiModelConfiguration) {
+            @Autowired(required = false) GooseExecutor executor) {
         this.executor = Optional.ofNullable(executor);
-        this.genaiModelConfiguration = genaiModelConfiguration;
     }
 
     @GetMapping("/health")
@@ -54,12 +50,13 @@ public class ChatHealthController {
     }
 
     /**
-     * Get the configured provider, checking GenAI first.
+     * Get the configured provider.
+     * Provider configuration is now handled via environment variables set by the buildpack
+     * at container startup. If GENAI_SERVICE_NAME is set, we're using a GenAI service.
      */
     private String getConfiguredProvider() {
-        // Check GenAI configuration first (takes precedence)
-        var genaiModel = genaiModelConfiguration.getModelInfo();
-        if (genaiModel.isPresent()) {
+        // Check if GenAI service is configured (buildpack sets GENAI_SERVICE_NAME)
+        if (isEnvSet("GENAI_SERVICE_NAME")) {
             return "openai";  // GenAI provides OpenAI-compatible API
         }
         
@@ -70,16 +67,12 @@ public class ChatHealthController {
     }
 
     /**
-     * Get the configured model, checking GenAI first.
+     * Get the configured model.
+     * Model configuration is now handled via environment variables set by the buildpack
+     * at container startup.
      */
     private String getConfiguredModel() {
-        // Check GenAI configuration first (takes precedence)
-        var genaiModel = genaiModelConfiguration.getModelInfo();
-        if (genaiModel.isPresent()) {
-            return genaiModel.get().model();
-        }
-        
-        // Fall back to environment configuration
+        // Model is set by buildpack via GOOSE_MODEL env var
         return getEnvOrElse("GOOSE_PROVIDER__MODEL",
                getEnvOrElse("GOOSE_MODEL", "default"));
     }
@@ -87,11 +80,10 @@ public class ChatHealthController {
     /**
      * Get the source of the model configuration.
      * 
-     * @return "genai-service" if using GenAI, "environment" otherwise
+     * @return "genai-service" if using GenAI (GENAI_SERVICE_NAME is set), "environment" otherwise
      */
     private String getModelSource() {
-        var genaiModel = genaiModelConfiguration.getModelInfo();
-        return genaiModel.isPresent() ? "genai-service" : "environment";
+        return isEnvSet("GENAI_SERVICE_NAME") ? "genai-service" : "environment";
     }
 
     private String inferProviderFromApiKeys() {
@@ -132,4 +124,3 @@ public class ChatHealthController {
         String message
     ) {}
 }
-
