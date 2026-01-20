@@ -76,9 +76,33 @@
                     <span class="item-name">{{ server.name }}</span>
                     <span class="item-description">{{ getMcpServerDetail(server) }}</span>
                   </div>
-                  <span class="item-badge" [class.http]="server.type === 'streamable_http'">
-                    {{ getMcpServerTypeLabel(server) }}
-                  </span>
+                  
+                  @if (requiresAuth(server)) {
+                    <!-- OAuth-enabled server: show connect/disconnect button -->
+                    @if (isConnecting(server)) {
+                      <mat-spinner diameter="16" class="auth-spinner"></mat-spinner>
+                    } @else if (isAuthenticated(server)) {
+                      <button 
+                        mat-icon-button 
+                        class="auth-button connected"
+                        matTooltip="Connected - Click to disconnect"
+                        (click)="disconnectServer(server); $event.stopPropagation()">
+                        <mat-icon>link</mat-icon>
+                      </button>
+                    } @else {
+                      <button 
+                        mat-icon-button 
+                        class="auth-button"
+                        matTooltip="Connect with OAuth"
+                        (click)="connectServer(server); $event.stopPropagation()">
+                        <mat-icon>link_off</mat-icon>
+                      </button>
+                    }
+                  } @else {
+                    <span class="item-badge" [class.http]="server.type === 'streamable_http'">
+                      {{ getMcpServerTypeLabel(server) }}
+                    </span>
+                  }
                 </div>
               }
             </div>

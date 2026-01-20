@@ -59,6 +59,10 @@ export interface McpServerInfo {
   url?: string;
   command?: string;
   args?: string[];
+  /** Whether this server requires OAuth authentication */
+  requiresAuth?: boolean;
+  /** Whether the user is currently authenticated with this server */
+  authenticated?: boolean;
 }
 
 export interface GooseConfig {

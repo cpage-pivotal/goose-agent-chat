@@ -220,6 +220,33 @@
   }
 }
 
+// OAuth authentication button styling
+.auth-button {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: var(--mat-sys-on-surface-variant);
+  }
+  
+  &.connected mat-icon {
+    color: var(--mat-sys-primary);
+  }
+  
+  &:hover mat-icon {
+    color: var(--mat-sys-primary);
+  }
+}
+
+.auth-spinner {
+  flex-shrink: 0;
+  margin: 6px;
+}
+
 // Scrollbar styling
 .panel-content::-webkit-scrollbar {
   width: 6px;

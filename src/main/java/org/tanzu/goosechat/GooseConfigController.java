@@ -65,7 +65,8 @@ public class GooseConfigController {
                 m.type(),
                 m.url(),
                 m.command(),
-                m.args()
+                m.args(),
+                m.requiresAuth()
             ))
             .toList();
 
@@ -109,6 +110,7 @@ public class GooseConfigController {
         String type,
         String url,
         String command,
-        List<String> args
+        List<String> args,
+        boolean requiresAuth
     ) {}
 }
