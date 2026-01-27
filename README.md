@@ -11,6 +11,7 @@ A full-stack web application providing a chat interface for interacting with [Go
 - **Material Design 3**: Modern, responsive UI using Angular Material
 - **Multi-Provider Support**: Works with Anthropic, OpenAI, Google, Databricks, and Ollama
 - **MCP OAuth2 Authentication**: Connect to OAuth-protected MCP servers with user consent flow
+- **Authentication**: Always-on access code auth with optional SSO when a CF identity provider is bound
 - **Cloud Foundry Ready**: Deployable with the Goose buildpack
 
 ## Prerequisites
@@ -129,6 +130,10 @@ cf push --vars-file vars.yaml
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
+| `/auth/login` | POST | Form login with username + password (access code) |
+| `/auth/status` | GET | Returns current authentication state and user info |
+| `/auth/provider` | GET | Detects available SSO provider (used by login page) |
+| `/logout` | POST | End the current session |
 | `/api/chat/health` | GET | Check Goose availability and version |
 | `/api/chat/sessions` | POST | Create a new conversation session |
 | `/api/chat/sessions/{id}/messages` | POST | Send message (returns SSE stream) |
@@ -141,6 +146,58 @@ cf push --vars-file vars.yaml
 | `/oauth/disconnect/{serverName}` | POST | Revoke OAuth tokens for an MCP server |
 | `/oauth/client-metadata.json` | GET | Client ID Metadata Document for dynamic registration |
 
+## Authentication
+
+All requests require authentication. There are two login methods:
+
+1. **Access code (always available)** — a shared secret configured via the `APP_AUTH_SECRET` environment variable. Users enter this code on the login page.
+2. **SSO (auto-detected)** — when a Cloud Foundry SSO tile (`p-identity`) is bound to the app, a "Sign in with SSO" button appears on the login page automatically. No feature flag is needed.
+
+### How it works
+
+- Spring Security is configured with form login. An in-memory user (`user`) is created with the password set to `APP_AUTH_SECRET`.
+- On page load, the login page fetches `/auth/provider` to check whether an OAuth2 client registration exists. If one is detected (via `java-cfenv-boot-pivotal-sso`), the SSO button is shown.
+- Both login methods result in a valid Spring Security session and redirect to the app.
+
+### Configuring the access code
+
+Set the `APP_AUTH_SECRET` environment variable. Locally:
+
+```bash
+export APP_AUTH_SECRET=my-secret-code
+./mvnw spring-boot:run
+```
+
+For Cloud Foundry, provide it in a vars file or via CredHub:
+
+```yaml
+# vars.yaml
+APP_AUTH_SECRET: my-secret-code
+```
+
+```bash
+cf push --vars-file vars.yaml
+```
+
+The default value is `changeme` if the variable is not set.
+
+### Enabling SSO on Cloud Foundry
+
+SSO activates automatically when a `p-identity` service instance is bound to the app. No application properties need to change.
+
+```bash
+# Create an SSO service instance (plan name may vary by foundation)
+cf create-service p-identity <plan> my-sso
+
+# Bind it to the app
+cf bind-service goose-agent-chat my-sso
+
+# Restage to pick up the new binding
+cf restage goose-agent-chat
+```
+
+Once bound, the login page will show both the access code field and a "Sign in with SSO" button. The `java-cfenv-boot-pivotal-sso` library detects the binding and auto-configures Spring Security's OAuth2 client registration.
+
 ## Configuration
 
 ### Application Properties
@@ -148,11 +205,13 @@ cf push --vars-file vars.yaml
 | Property | Default | Description |
 |----------|---------|-------------|
 | `goose.enabled` | `true` | Enable/disable Goose integration |
+| `app.auth.secret` | `changeme` | Shared access code for login (set via `APP_AUTH_SECRET` env var) |
 
 ### Environment Variables
 
 | Variable | Description |
 |----------|-------------|
+| `APP_AUTH_SECRET` | Shared access code for login |
 | `GOOSE_CLI_PATH` | Path to Goose CLI binary |
 | `ANTHROPIC_API_KEY` | Anthropic API key |
 | `OPENAI_API_KEY` | OpenAI API key |
