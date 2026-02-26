@@ -150,51 +150,107 @@ public class McpOAuthController {
             String baseUrl = detectBaseUrl(request);
             String redirectUri = baseUrl + "/oauth/callback";
             
-            // Determine client ID: use pre-registered client ID if available,
-            // otherwise use Client ID Metadata Document URL (for servers with dynamic registration)
+            // Determine client credentials
             String clientId;
             String clientSecret = null;
+            
             if (serverInfo.hasClientCredentials()) {
+                // Use pre-registered client credentials
                 clientId = serverInfo.clientId();
                 clientSecret = serverInfo.clientSecret();
                 logger.info("Using pre-registered client ID for server: {}", serverName);
+                
+                // Get or create a shared OAuth manager for this server
+                McpOAuthManagerImpl manager = getOrCreateOAuthManager(serverName, clientId, clientSecret);
+                
+                // Discover OAuth configuration
+                McpOAuthConfig config = manager.discoverOAuthConfig(serverName, serverInfo.url()).join();
+                
+                // Initiate authorization
+                return initiateAuthWithConfig(serverName, sessionId, redirectUri, serverInfo, manager, config);
+                
             } else {
-                clientId = baseUrl + "/oauth/client-metadata.json";
-                logger.info("Using Client ID Metadata Document URL for server: {}", serverName);
+                // No pre-registered credentials - need to discover config first to determine approach
+                // Use a placeholder client ID for discovery (will be replaced by DCR or CIMD)
+                String placeholderClientId = baseUrl + "/oauth/client-metadata.json";
+                McpOAuthManagerImpl manager = getOrCreateOAuthManager(serverName, placeholderClientId, null);
+                
+                // Discover OAuth configuration to check for CIMD/DCR support
+                McpOAuthConfig config = manager.discoverOAuthConfig(serverName, serverInfo.url()).join();
+                
+                if (config.clientIdMetadataDocumentSupported()) {
+                    // Server supports CIMD - use the metadata document URL as client ID
+                    clientId = baseUrl + "/oauth/client-metadata.json";
+                    logger.info("Using Client ID Metadata Document (CIMD) for server: {}", serverName);
+                } else if (config.registrationEndpoint() != null && !config.registrationEndpoint().isEmpty()) {
+                    // Server supports DCR - perform dynamic registration
+                    logger.info("Server does not support CIMD, performing DCR for server: {}", serverName);
+                    clientId = manager.performDynamicClientRegistration(config, clientName, redirectUri).join();
+                    logger.info("DCR completed for server: {}, client_id: {}", serverName, clientId);
+                } else {
+                    // No CIMD or DCR support - fall back to CIMD anyway (legacy behavior)
+                    clientId = baseUrl + "/oauth/client-metadata.json";
+                    logger.warn("Server {} supports neither CIMD nor DCR, falling back to CIMD", serverName);
+                }
+                
+                // Update the config with the actual client ID
+                McpOAuthConfig updatedConfig = McpOAuthConfig.builder()
+                    .serverName(config.serverName())
+                    .mcpServerUrl(config.mcpServerUrl())
+                    .resourceIdentifier(config.resourceIdentifier())
+                    .resourceMetadataUrl(config.resourceMetadataUrl())
+                    .authorizationEndpoint(config.authorizationEndpoint())
+                    .tokenEndpoint(config.tokenEndpoint())
+                    .scopesSupported(config.scopesSupported())
+                    .resourceScopesSupported(config.resourceScopesSupported())
+                    .requiredScopes(config.requiredScopes())
+                    .clientId(clientId)
+                    .registrationEndpoint(config.registrationEndpoint())
+                    .clientIdMetadataDocumentSupported(config.clientIdMetadataDocumentSupported())
+                    .build();
+                
+                // Initiate authorization with the updated config
+                return initiateAuthWithConfig(serverName, sessionId, redirectUri, serverInfo, manager, updatedConfig);
             }
-            
-            // Get or create a shared OAuth manager for this server
-            McpOAuthManagerImpl manager = getOrCreateOAuthManager(serverName, clientId, clientSecret);
-            
-            // Discover OAuth configuration
-            McpOAuthConfig config = manager.discoverOAuthConfig(serverName, serverInfo.url()).join();
-            
-            // Get configured scopes (if any)
-            List<String> configuredScopes = serverInfo.hasConfiguredScopes() 
-                ? serverInfo.getScopesList() 
-                : null;
-            
-            if (configuredScopes != null) {
-                logger.info("Using configured scopes for server {}: {}", serverName, configuredScopes);
-            }
-            
-            // Initiate authorization with optional scopes override
-            McpOAuthManager.OAuthAuthorizationRequest authRequest = 
-                manager.initiateAuthorization(config, sessionId, redirectUri, configuredScopes);
-            
-            logger.info("Generated auth URL for server: {}", serverName);
-            
-            return ResponseEntity.ok(new InitiateAuthResponse(
-                authRequest.authorizationUrl(),
-                authRequest.state(),
-                null
-            ));
             
         } catch (Exception e) {
             logger.error("Failed to initiate OAuth for server: {}", serverName, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new InitiateAuthResponse(null, null, "OAuth initiation failed: " + e.getMessage()));
         }
+    }
+    
+    /**
+     * Complete the OAuth initiation with the given configuration.
+     */
+    private ResponseEntity<InitiateAuthResponse> initiateAuthWithConfig(
+            String serverName,
+            String sessionId,
+            String redirectUri,
+            McpServerInfo serverInfo,
+            McpOAuthManagerImpl manager,
+            McpOAuthConfig config) {
+        
+        // Get configured scopes (if any)
+        List<String> configuredScopes = serverInfo.hasConfiguredScopes() 
+            ? serverInfo.getScopesList() 
+            : null;
+        
+        if (configuredScopes != null) {
+            logger.info("Using configured scopes for server {}: {}", serverName, configuredScopes);
+        }
+        
+        // Initiate authorization with optional scopes override
+        McpOAuthManager.OAuthAuthorizationRequest authRequest = 
+            manager.initiateAuthorization(config, sessionId, redirectUri, configuredScopes);
+        
+        logger.info("Generated auth URL for server: {}", serverName);
+        
+        return ResponseEntity.ok(new InitiateAuthResponse(
+            authRequest.authorizationUrl(),
+            authRequest.state(),
+            null
+        ));
     }
 
     /**
