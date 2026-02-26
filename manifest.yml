@@ -9,12 +9,12 @@ applications:
     env:
       JBP_CONFIG_OPEN_JDK_JRE: '{ jre: { version: 21.+ } }'
       GOOSE_ENABLED: true
+      GOOSE_VERSION: 1.24.0
       APP_AUTH_SECRET: ((APP_AUTH_SECRET))
       # Provider/model configuration is in .goose-config.yml (src/main/resources)
       # API key for the configured provider (set via CredHub or cf set-env):
       # OPENAI_API_KEY: ((OPENAI_API_KEY))
       # ANTHROPIC_API_KEY: ((ANTHROPIC_API_KEY))
       # GOOGLE_API_KEY: ((GOOGLE_API_KEY))
-      # DATABRICKS_HOST: ((DATABRICKS_HOST))
-      # DATABRICKS_TOKEN: ((DATABRICKS_TOKEN))
+
 
