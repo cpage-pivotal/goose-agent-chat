@@ -22,15 +22,15 @@
   },
   "private": true,
   "dependencies": {
-    "@angular/animations": "21.1.0",
-    "@angular/cdk": "^21.0.5",
-    "@angular/common": "^21.0.6",
-    "@angular/compiler": "^21.0.6",
-    "@angular/core": "^21.0.6",
-    "@angular/forms": "^21.0.6",
-    "@angular/material": "^21.0.5",
-    "@angular/platform-browser": "^21.0.6",
-    "@angular/router": "^21.0.6",
+    "@angular/animations": "21.2.8",
+    "@angular/cdk": "^21.2.6",
+    "@angular/common": "^21.2.8",
+    "@angular/compiler": "^21.2.8",
+    "@angular/core": "^21.2.8",
+    "@angular/forms": "^21.2.8",
+    "@angular/material": "^21.2.6",
+    "@angular/platform-browser": "^21.2.8",
+    "@angular/router": "^21.2.8",
     "@types/marked": "^5.0.2",
     "marked": "^17.0.1",
     "ngx-markdown": "^21.0.0",
@@ -38,9 +38,9 @@
     "tslib": "^2.3.0"
   },
   "devDependencies": {
-    "@angular/build": "^21.0.4",
-    "@angular/cli": "^21.0.4",
-    "@angular/compiler-cli": "^21.0.6",
+    "@angular/build": "^21.2.7",
+    "@angular/cli": "^21.2.7",
+    "@angular/compiler-cli": "^21.2.8",
     "@types/jasmine": "~5.1.0",
     "baseline-browser-mapping": "^2.8.32",
     "jasmine-core": "~5.9.0",
@@ -49,4 +49,3 @@
     "vitest": "^4.0.16"
   }
 }
-
