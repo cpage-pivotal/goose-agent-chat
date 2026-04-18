@@ -5,141 +5,193 @@
     (collapseToggle)="toggleConfigPanel()"
   />
 
-  <div class="chat-container">
-    <!-- Header with session controls -->
-    <div class="chat-header">
-      <div class="header-content">
-        <div class="session-info">
-          <mat-icon svgIcon="goose" class="session-icon"></mat-icon>
-          <span class="session-text">
-            @if (sessionId()) {
-              <strong>Active Conversation</strong>
-              <span class="session-id-row">
-                <span class="session-id">Session: {{ sessionId()?.substring(0, 8) }}...</span>
-                <button
-                  mat-icon-button
-                  (click)="copySessionId()"
-                  matTooltip="Copy session ID to clipboard"
-                  class="copy-session-btn"
-                >
-                  <mat-icon>content_copy</mat-icon>
-                </button>
-              </span>
-            } @else {
-              <strong>No Active Session</strong>
-            }
+  <div class="chat-column">
+
+    <!-- Top App Bar -->
+    <div class="appbar">
+      <div class="appbar-row">
+        <div class="appbar-avatar" aria-hidden="true">
+          <mat-icon svgIcon="goose"></mat-icon>
+        </div>
+        <span class="appbar-title">Goose</span>
+        @if (sessionId()) {
+          <span class="status-dot" title="Connected"></span>
+        }
+        <span class="appbar-spacer"></span>
+        <button
+          mat-icon-button
+          (click)="startNewConversation()"
+          [disabled]="isCreatingSession() || !gooseAvailable"
+          matTooltip="New conversation"
+          aria-label="New conversation"
+        >
+          <mat-icon>edit_square</mat-icon>
+        </button>
+      </div>
+
+      @if (gooseAvailable) {
+        <div class="chip-row" aria-label="Session metadata">
+          <span class="chip tonal" [class.accent]="isGenaiService">
+            <mat-icon>{{ isGenaiService ? 'cloud' : 'smart_toy' }}</mat-icon>
+            {{ gooseProvider }} · {{ gooseModel }}
           </span>
-          @if (gooseAvailable) {
-            <span class="provider-badge" [class.genai-service]="isGenaiService">
-              <mat-icon class="provider-icon">{{ isGenaiService ? 'cloud' : 'smart_toy' }}</mat-icon>
-              {{ gooseProvider }} · {{ gooseModel }}
-              @if (isGenaiService) {
-                <span class="source-badge">GenAI</span>
-              }
+          @if (isGenaiService) {
+            <span class="chip tonal">
+              <mat-icon>bolt</mat-icon>
+              GenAI
+            </span>
+          }
+          @if (sessionId()) {
+            <span class="chip">
+              <mat-icon>tag</mat-icon>
+              <span class="chip-mono">{{ sessionId()?.substring(0, 8) }}</span>
+              <button
+                class="chip-action"
+                (click)="copySessionId()"
+                aria-label="Copy session ID"
+                matTooltip="Copy session ID"
+              >
+                <mat-icon>content_copy</mat-icon>
+              </button>
             </span>
           }
         </div>
-        <div class="session-actions">
-          <button
-            mat-icon-button
-            (click)="startNewConversation()"
-            [disabled]="isCreatingSession() || !gooseAvailable"
-            matTooltip="Start new conversation"
-            color="primary"
-          >
-            <mat-icon>add_circle</mat-icon>
-          </button>
-          <button
-            mat-icon-button
-            (click)="endConversation()"
-            [disabled]="!sessionId() || isStreaming()"
-            matTooltip="End current conversation"
-            color="warn"
-          >
-            <mat-icon>stop_circle</mat-icon>
-          </button>
-        </div>
-      </div>
+      }
+      <div class="appbar-divider"></div>
     </div>
 
-    <div class="messages-container" #messagesContainer>
+    <!-- Message stream -->
+    <div class="stream-wrap">
+
       @if (messages().length === 0) {
-        <div class="welcome-message">
-          <mat-icon svgIcon="goose" class="welcome-icon"></mat-icon>
-          <h2>Goose Agent Chat</h2>
+        <!-- Empty state -->
+        <div class="empty-state">
+          <div class="empty-hero" aria-hidden="true">
+            <mat-icon svgIcon="goose"></mat-icon>
+          </div>
           @if (gooseAvailable) {
-            <p class="status-text">Goose v{{ gooseVersion }} is ready</p>
-            <p class="provider-info">
-              Provider: {{ gooseProvider }} | Model: {{ gooseModel }}
-              @if (isGenaiService) {
-                <span class="source-indicator">(via GenAI Service)</span>
+            <h2>How can Goose help today?</h2>
+            <p class="empty-sub">
+              @if (isCreatingSession()) {
+                Starting conversation…
+              } @else if (sessionId()) {
+                Start a new conversation — Goose will remember context across turns and use your configured tools.
+              } @else {
+                Goose v{{ gooseVersion }} is ready.
               }
             </p>
-            @if (sessionId()) {
-              <p class="status-text info">Conversation session active - Goose will remember your conversation context</p>
-            } @else if (isCreatingSession()) {
-              <p class="status-text info">Starting new conversation...</p>
-            }
           } @else {
-            <p class="status-text error">{{ gooseMessage || 'Goose CLI is not available' }}</p>
+            <h2>Goose is unavailable</h2>
+            <p class="empty-sub error">{{ gooseMessage || 'Goose CLI is not installed or not on the PATH.' }}</p>
+          }
+        </div>
+      } @else {
+        <!-- Message stream -->
+        <div
+          class="message-stream"
+          #messageStream
+          role="log"
+          aria-live="polite"
+          aria-atomic="false"
+          (scroll)="onStreamScroll($event)"
+        >
+          <div class="day-divider">Today</div>
+
+          @for (run of messageRuns(); track $index) {
+            <div class="run" [class.user]="run.role === 'user'" [class.assistant]="run.role === 'assistant'">
+              @if (run.role === 'assistant') {
+                <div class="run-avatar" aria-hidden="true">
+                  <mat-icon svgIcon="goose"></mat-icon>
+                </div>
+              }
+              <div class="run-bubbles">
+                <div class="run-meta">
+                  @if (run.role === 'user') { You } @else { Goose }
+                  @if (run.messages[run.messages.length - 1].streaming) {
+                    <span class="streaming-label" aria-label="generating"> · streaming…</span>
+                  }
+                </div>
+
+                @for (msg of run.messages; track $index; let last = $last) {
+                  @if (msg.streaming && msg.content === '') {
+                    <!-- Typing indicator (before first token) -->
+                    <div class="typing-bubble" aria-label="Goose is typing">
+                      <span></span><span></span><span></span>
+                    </div>
+                  } @else {
+                    <div class="bubble" [class.last]="last">
+                      <div class="bubble-content">
+                        <markdown [data]="msg.content"></markdown>
+                        @if (msg.streaming) {
+                          <span class="stream-caret" aria-hidden="true"></span>
+                        }
+                      </div>
+                      @if (run.role === 'assistant' && last && !msg.streaming) {
+                        <div class="bubble-actions" role="toolbar" aria-label="Message actions">
+                          <button class="action-btn" (click)="copyMessage(msg.content)" aria-label="Copy message" matTooltip="Copy">
+                            <mat-icon>content_copy</mat-icon>
+                          </button>
+
+                        </div>
+                      }
+                    </div>
+                  }
+                }
+              </div>
+            </div>
           }
         </div>
       }
 
-      @for (message of messages(); track message.timestamp) {
-        <div class="message" [class.user-message]="message.role === 'user'"
-             [class.assistant-message]="message.role === 'assistant'">
-          <mat-card class="message-card" appearance="outlined">
-            <mat-card-content>
-              <div class="message-header">
-                @if (message.role === 'user') {
-                  <mat-icon class="message-icon">person</mat-icon>
-                } @else {
-                  <mat-icon svgIcon="goose" class="message-icon"></mat-icon>
-                }
-                <span class="message-role">{{ message.role === 'user' ? 'You' : 'Goose' }}</span>
-                @if (message.streaming) {
-                  <mat-spinner diameter="16" class="streaming-indicator"></mat-spinner>
-                }
-              </div>
-              <div class="message-content">
-                <markdown [data]="message.content"></markdown>
-              </div>
-            </mat-card-content>
-          </mat-card>
-        </div>
-      }
-    </div>
-
-    <div class="input-container">
-      <mat-form-field appearance="outline" class="message-input">
-        <mat-label>Type your message...</mat-label>
-        <textarea
-          matInput
-          [value]="userInput()"
-          (input)="onInputChange($event)"
-          (keypress)="onKeyPress($event)"
-          [disabled]="isStreaming() || !gooseAvailable || !sessionId()"
-          rows="3"
-          placeholder="Ask Goose anything..."
-        ></textarea>
-      </mat-form-field>
+      <!-- New messages pill -->
       <button
-        mat-fab
-        extended
-        color="primary"
-        (click)="sendMessage()"
-        [disabled]="!userInput().trim() || isStreaming() || !gooseAvailable || !sessionId()"
-        class="send-button"
+        class="new-messages-pill"
+        [class.visible]="showNewMessagesPill()"
+        (click)="scrollToBottom(true)"
+        aria-label="Scroll to latest messages"
       >
-        @if (isStreaming()) {
-          <mat-spinner diameter="24"></mat-spinner>
-        } @else {
-          <mat-icon>send</mat-icon>
-        }
-        {{ isStreaming() ? 'Sending...' : 'Send' }}
+        <mat-icon>arrow_downward</mat-icon>
+        New messages
       </button>
     </div>
+
+    <!-- Composer -->
+    <div class="composer-wrap">
+      <div class="composer" [class.focused]="composerFocused()">
+        <button class="composer-attach" aria-label="Attach file" matTooltip="Attach">
+          <mat-icon>add</mat-icon>
+        </button>
+        <textarea
+          class="composer-input"
+          rows="1"
+          placeholder="Message Goose…"
+          aria-label="Message"
+          [value]="userInput()"
+          (input)="onInputChange($event)"
+          (keydown)="onKeyDown($event)"
+          (focus)="composerFocused.set(true)"
+          (blur)="composerFocused.set(false)"
+          [disabled]="isStreaming() || !gooseAvailable || !sessionId()"
+          aria-describedby="composer-hint"
+        ></textarea>
+        <button
+          class="composer-send"
+          [disabled]="!userInput().trim() || isStreaming() || !gooseAvailable || !sessionId()"
+          (click)="sendMessage()"
+          aria-label="Send message"
+        >
+          @if (isStreaming()) {
+            <mat-spinner diameter="20" aria-label="Generating response"></mat-spinner>
+          } @else {
+            <mat-icon>arrow_upward</mat-icon>
+          }
+        </button>
+      </div>
+      <div class="composer-hint" id="composer-hint">
+        <span><kbd>Enter</kbd> to send · <kbd>Shift</kbd><kbd>↵</kbd> for newline</span>
+      </div>
+    </div>
+
   </div>
 
   <!-- Activity Panel -->
