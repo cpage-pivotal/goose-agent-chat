@@ -593,23 +593,6 @@
   }
 }
 
-.composer-attach {
-  all: unset;
-  cursor: pointer;
-  width: 40px;
-  height: 40px;
-  display: grid;
-  place-items: center;
-  color: var(--mat-sys-on-surface-variant);
-  border-radius: 50%;
-  flex: none;
-  transition: background 100ms;
-
-  &:hover {
-    background: color-mix(in oklch, var(--mat-sys-on-surface) 8%, transparent);
-  }
-}
-
 .composer-input {
   flex: 1;
   min-height: 40px;
