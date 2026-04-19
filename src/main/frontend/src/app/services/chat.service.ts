@@ -179,6 +179,10 @@ export class ChatService {
       body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined
     });
 
+    if (response.status === 401 || response.status === 403) {
+      throw new Error('AUTH_EXPIRED');
+    }
+
     if (!response.ok) {
       throw new Error(`Failed to create session: ${response.status}`);
     }
@@ -222,6 +226,7 @@ export class ChatService {
       const url = `${this.apiUrl}/sessions/${sessionId}/stream?message=${encodedMessage}`;
       
       const eventSource = new EventSource(url);
+      let streamCompleted = false;
 
       // Handle token events - individual tokens as they arrive
       // Tokens are JSON-encoded strings to preserve whitespace (SSE strips leading spaces)
@@ -313,25 +318,40 @@ export class ChatService {
 
       // Handle completion event
       eventSource.addEventListener('complete', () => {
+        streamCompleted = true;
         eventSource.close();
         observer.complete();
       });
 
-      // Handle error events from the server
+      // Handle error events explicitly sent by the server (event: error\ndata: ...)
+      // Connection-level errors (401, network failure) also fire this event but with
+      // empty data — those are handled by onerror below.
       eventSource.addEventListener('error', (event: MessageEvent) => {
-        eventSource.close();
-        observer.error(new Error(event.data || 'Stream error'));
+        if (event.data) {
+          eventSource.close();
+          observer.error(new Error(event.data));
+        }
       });
 
       // Handle connection errors
-      eventSource.onerror = () => {
-        // Check if the connection was closed normally (after 'complete' event)
-        if (eventSource.readyState === EventSource.CLOSED) {
+      // streamCompleted distinguishes a normal post-complete close (readyState=CLOSED)
+      // from a fatal HTTP error like 401 (also readyState=CLOSED per EventSource spec)
+      eventSource.onerror = async () => {
+        if (streamCompleted) {
           observer.complete();
-        } else {
-          eventSource.close();
-          observer.error(new Error('Connection to server failed'));
+          return;
         }
+        if (eventSource.readyState !== EventSource.CLOSED) {
+          eventSource.close();
+        }
+        try {
+          const authCheck = await fetch('/auth/status', { credentials: 'same-origin' });
+          if (authCheck.status === 401 || authCheck.status === 403) {
+            observer.error(new Error('AUTH_EXPIRED'));
+            return;
+          }
+        } catch { /* ignore auth check failure */ }
+        observer.error(new Error('Connection to server failed'));
       };
 
       // Cleanup on unsubscribe

@@ -8,6 +8,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MarkdownComponent } from 'ngx-markdown';
 import { ChatService, ChatMessage, HealthInfo } from '../../services/chat.service';
+import { AuthService } from '../../services/auth.service';
 import { ActivityPanelComponent } from '../activity-panel/activity-panel.component';
 import { ConfigPanelComponent } from '../config-panel/config-panel.component';
 
@@ -67,6 +68,7 @@ export class ChatComponent {
 
   constructor(
     private chatService: ChatService,
+    private authService: AuthService,
     private snackBar: MatSnackBar,
     private matIconRegistry: MatIconRegistry,
     private domSanitizer: DomSanitizer
@@ -142,6 +144,10 @@ export class ChatComponent {
       });
     } catch (error) {
       console.error('Failed to start new conversation:', error);
+      if (error instanceof Error && error.message === 'AUTH_EXPIRED') {
+        this.authService.checkAuthStatus();
+        return;
+      }
       this.snackBar.open('Failed to start conversation', 'Close', {
         duration: 3000, horizontalPosition: 'center', verticalPosition: 'bottom'
       });
@@ -212,7 +218,9 @@ export class ChatComponent {
       error: (error) => {
         console.error('Chat error:', error);
         const errorMessage = error.message || 'Failed to get response from Goose.';
-        if (errorMessage.includes('Session not found') || errorMessage.includes('expired')) {
+        if (errorMessage === 'AUTH_EXPIRED') {
+          this.authService.checkAuthStatus();
+        } else if (errorMessage.includes('Session not found') || errorMessage.includes('expired')) {
           this.snackBar.open('Session expired. Starting new conversation…', 'Close', {
             duration: 3000, horizontalPosition: 'center', verticalPosition: 'bottom'
           });
