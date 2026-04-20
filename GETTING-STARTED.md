@@ -98,15 +98,15 @@ mcpServers:
   # Cloud Foundry MCP server - credentials and URL managed by Agent Credential Broker
   - name: cloud-foundry
     type: streamable_http
-    requiresAuth: true
+    brokerAuth: true
 
   # GitHub MCP server - credentials and URL managed by Agent Credential Broker
   - name: github
     type: streamable_http
-    requiresAuth: true
+    brokerAuth: true
 ```
 
-For servers that require authentication, set `requiresAuth: true`. The `url` field can be omitted — the Agent Credential Broker provides both the credential and the MCP server URL at runtime. No `clientId`, `clientSecret`, or `scopes` are needed in the app configuration either — credential management is handled by the [Agent Credential Broker](#credential-management-with-the-agent-credential-broker).
+For servers that require authentication, set `brokerAuth: true`. The `url` field can be omitted — the Agent Credential Broker provides both the credential and the MCP server URL at runtime. No `clientId`, `clientSecret`, or `scopes` are needed in the app configuration either — credential management is handled by the [Agent Credential Broker](#credential-management-with-the-agent-credential-broker).
 
 ### Adding Local MCP Servers
 
@@ -160,13 +160,13 @@ This is the only configuration needed in goose-agent-chat. The broker manages al
 
 ### MCP Server Configuration
 
-MCP servers that require authentication should have `requiresAuth: true` in `.goose-config.yml`. The `url` field can be omitted — the broker returns it at runtime alongside the credential:
+MCP servers that require authentication should have `brokerAuth: true` in `.goose-config.yml`. The `url` field can be omitted — the broker returns it at runtime alongside the credential:
 
 ```yaml
 mcpServers:
   - name: github
     type: streamable_http
-    requiresAuth: true
+    brokerAuth: true
 ```
 
 No `url`, `clientId`, `clientSecret`, or `scopes` fields are needed — the broker is the single source of truth for endpoint URLs and credential details.
@@ -541,12 +541,12 @@ mcpServers:
   # GitHub MCP server — URL and credentials provided by broker at runtime
   - name: github
     type: streamable_http
-    requiresAuth: true
+    brokerAuth: true
 
   # Cloud Foundry MCP server — URL and credentials provided by broker at runtime
   - name: cloud-foundry
     type: streamable_http
-    requiresAuth: true
+    brokerAuth: true
   
   # Public MCP server (no authentication needed — url required here)
   - name: internal-tools

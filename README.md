@@ -189,16 +189,16 @@ Set the `BROKER_BASE_URL` environment variable to enable broker integration:
 BROKER_BASE_URL: https://agent-credential-broker.apps.example.com
 ```
 
-MCP servers that require authentication should have `requiresAuth: true` in `.goose-config.yml`. The `url` field can be omitted — the broker provides the MCP server URL at runtime alongside the credential. No `clientId`, `clientSecret`, or `scopes` are needed either — those are all managed by the broker.
+MCP servers that require authentication should have `brokerAuth: true` in `.goose-config.yml`. The `url` field can be omitted — the broker provides the MCP server URL at runtime alongside the credential. No `clientId`, `clientSecret`, or `scopes` are needed either — those are all managed by the broker.
 
 ```yaml
 mcpServers:
   - name: github
     type: streamable_http
-    requiresAuth: true
+    brokerAuth: true
   - name: cloud-foundry
     type: streamable_http
-    requiresAuth: true
+    brokerAuth: true
 ```
 
 ## Configuration
