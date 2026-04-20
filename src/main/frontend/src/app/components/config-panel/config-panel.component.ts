@@ -141,7 +141,7 @@ export class ConfigPanelComponent implements OnInit {
 
   openSecurityDiagram(): void {
     this.dialog.open(SecurityDiagramDialogComponent, {
-      width: '880px',
+      width: '1100px',
       maxWidth: '95vw',
     });
   }

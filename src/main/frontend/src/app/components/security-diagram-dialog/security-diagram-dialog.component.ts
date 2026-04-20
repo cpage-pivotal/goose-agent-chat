@@ -1,9 +1,9 @@
-import { Component, signal, inject, DestroyRef, OnInit } from '@angular/core';
+import { Component, computed, signal, inject, DestroyRef, OnInit, HostListener } from '@angular/core';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 
-const STEP_INTERVAL_MS = 1000;
+const STEP_INTERVAL_MS = 850;
 const MAX_STEPS = 8;
 
 @Component({
@@ -18,11 +18,45 @@ export class SecurityDiagramDialogComponent implements OnInit {
 
   protected readonly visibleStep = signal(0);
 
+  protected readonly flowSteps = [
+    { label: 'SSO Token',          sub: "Agent holds user's SSO access token" },
+    { label: 'Token Exchange',     sub: 'Agent → Broker over mTLS' },
+    { label: 'Delegation JWT',     sub: 'Broker returns signed delegation token' },
+    { label: 'Credential Request', sub: 'Agent presents mTLS cert + delegation' },
+    { label: 'Validate',           sub: 'Broker runs three-layer checks' },
+    { label: 'Verify Grant',       sub: 'DB lookup confirms active grant' },
+    { label: 'Fetch',              sub: 'Broker retrieves credential from target' },
+    { label: 'Return',             sub: 'ResourceAccessToken returned to agent' },
+  ];
+
+  protected readonly currentStepLabel = computed(() => {
+    const s = this.visibleStep();
+    return s > 0 ? `Step ${s}: ${this.flowSteps[s - 1].label}` : '';
+  });
+
   private timers: ReturnType<typeof setTimeout>[] = [];
 
   ngOnInit(): void {
     this.startAnimation();
     this.destroyRef.onDestroy(() => this.clearTimers());
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  onKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'ArrowRight') {
+      this.clearTimers();
+      this.visibleStep.update(s => Math.min(s + 1, MAX_STEPS));
+    } else if (event.key === 'ArrowLeft') {
+      this.clearTimers();
+      this.visibleStep.update(s => Math.max(s - 1, 0));
+    } else if (event.key.toLowerCase() === 'r') {
+      this.replay();
+    }
+  }
+
+  goToStep(step: number): void {
+    this.clearTimers();
+    this.visibleStep.set(step);
   }
 
   replay(): void {
@@ -35,39 +69,33 @@ export class SecurityDiagramDialogComponent implements OnInit {
     this.dialogRef.close();
   }
 
+  isActive(index: number): boolean {
+    return this.visibleStep() === index + 1;
+  }
+
+  isDone(index: number): boolean {
+    return this.visibleStep() > index + 1;
+  }
+
   stepOpacity(step: number): number {
     return this.visibleStep() >= step ? 1 : 0;
   }
 
   lineDashOffset(step: number): number {
-    return this.visibleStep() >= step ? 0 : 200;
+    return this.visibleStep() >= step ? 0 : 600;
   }
 
-  checkFill(step: number): string {
-    return this.visibleStep() >= step
-      ? 'var(--mat-sys-tertiary-container)'
-      : 'var(--mat-sys-surface-container-highest)';
+  isCheckOn(step: number): boolean {
+    return this.visibleStep() >= step;
   }
 
-  checkStroke(step: number): string {
-    return this.visibleStep() >= step
-      ? 'var(--mat-sys-tertiary)'
-      : 'var(--mat-sys-outline-variant)';
-  }
-
-  nodeStroke(step: number): string {
-    return this.visibleStep() >= step
-      ? 'var(--mat-sys-primary)'
-      : 'var(--mat-sys-outline-variant)';
-  }
-
-  nodeStrokeWidth(step: number): number {
-    return this.visibleStep() >= step ? 2 : 1.2;
+  isEmphasized(step: number): boolean {
+    return this.visibleStep() >= step;
   }
 
   private startAnimation(): void {
     for (let i = 1; i <= MAX_STEPS; i++) {
-      const timer = setTimeout(() => this.visibleStep.set(i), i * STEP_INTERVAL_MS);
+      const timer = setTimeout(() => this.visibleStep.set(i), 200 + i * STEP_INTERVAL_MS);
       this.timers.push(timer);
     }
   }

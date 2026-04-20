@@ -1,175 +1,216 @@
-<h2 mat-dialog-title class="dialog-title">
-  <mat-icon class="title-icon">security</mat-icon>
-  How Credential Brokering Works
-</h2>
+<div class="m3-dialog-header">
+  <div class="hero-icon">
+    <mat-icon>security</mat-icon>
+  </div>
+  <div class="header-text">
+    <h2 class="dialog-title" mat-dialog-title>How Credential Brokering Works</h2>
+    <p class="supporting">End-to-end walkthrough · 8 steps</p>
+  </div>
+</div>
 
 <mat-dialog-content>
-  <div class="diagram-viewport">
-    <svg class="diagram-svg" viewBox="0 0 820 490" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <marker id="arrow-primary" viewBox="0 0 10 10" refX="10" refY="5"
-                markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" class="arrow-primary" />
-        </marker>
-        <marker id="arrow-tertiary" viewBox="0 0 10 10" refX="10" refY="5"
-                markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" class="arrow-tertiary" />
-        </marker>
-      </defs>
+  <span class="sr-only" aria-live="polite" aria-atomic="true">{{ currentStepLabel() }}</span>
 
-      <!-- Tanzu Platform boundary -->
-      <rect class="platform-boundary" x="10" y="10" width="800" height="470" rx="12" />
-      <text class="platform-label" x="410" y="38">Tanzu Platform (Cloud Foundry)</text>
+  <div class="diagram-layout">
+    <div class="diagram-card">
+      <svg class="diagram-svg" viewBox="0 0 960 560" xmlns="http://www.w3.org/2000/svg"
+           role="img" aria-labelledby="diag-title diag-desc">
+        <title id="diag-title">How Credential Brokering Works</title>
+        <desc id="diag-desc">Eight-step sequence: SSO token, delegation token exchange, credential request, broker validation checks, grant verification, target fetch, and ResourceAccessToken return.</desc>
+        <defs>
+          <marker id="arrow-primary" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" class="arrow-primary" />
+          </marker>
+          <marker id="arrow-tertiary" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" class="arrow-tertiary" />
+          </marker>
+        </defs>
 
-      <!-- C2C network zone -->
-      <rect class="c2c-boundary" x="30" y="55" width="510" height="240" rx="8" />
-      <text class="c2c-label" x="285" y="77">C2C Network (cf add-network-policy)</text>
+        <!-- Platform boundary -->
+        <rect class="platform-boundary" x="20" y="40" width="920" height="500" rx="16" />
+        <text class="platform-label" x="480" y="64">Tanzu Platform (Cloud Foundry)</text>
 
-      <!-- Nodes -->
-      <g class="node agent-node">
-        <rect x="50" y="95" width="160" height="180" rx="8" />
-        <text x="130" y="125" class="node-title">Goose Agent Chat</text>
-        <text x="130" y="145" class="node-sub">CF Instance</text>
-        <text x="130" y="161" class="node-sub">Identity Cert</text>
-        <text x="130" y="185" class="node-sub cert-detail">OU=organization:...</text>
-        <text x="130" y="197" class="node-sub cert-detail">OU=space:... OU=app:...</text>
-      </g>
+        <!-- C2C network boundary -->
+        <rect class="c2c-boundary" x="40" y="90" width="540" height="270" rx="12" />
+        <text class="c2c-label" x="310" y="112">C2C Network · cf add-network-policy · mTLS required</text>
 
-      <g class="node broker-node">
-        <rect x="340" y="95" width="180" height="180" rx="8"
-              [attr.stroke]="nodeStroke(2)" [attr.stroke-width]="nodeStrokeWidth(2)" />
-        <text x="430" y="123" class="node-title">Credential Broker</text>
-        <text x="430" y="143" class="node-sub">.apps.internal:8443</text>
-        <text x="430" y="163" class="node-sub">mTLS Required</text>
-        <text x="430" y="190" class="node-sub verify-label">Validates 3 layers:</text>
-      </g>
+        <!-- Column labels -->
+        <text class="lane-label" x="740" y="118">Broker checks</text>
+        <text class="lane-label" x="480" y="398">Backing services</text>
 
-      <!-- Three-layer check boxes -->
-      <g class="node check-node">
-        <rect x="560" y="90" width="230" height="34" rx="6"
-              [attr.fill]="checkFill(5)" [attr.stroke]="checkStroke(5)" />
-        <text x="675" y="112" class="check-text">1. Workload Identity (mTLS cert)</text>
-      </g>
-      <g class="node check-node">
-        <rect x="560" y="133" width="230" height="34" rx="6"
-              [attr.fill]="checkFill(5)" [attr.stroke]="checkStroke(5)" />
-        <text x="675" y="155" class="check-text">2. Delegation Token (JWT)</text>
-      </g>
-      <g class="node check-node">
-        <rect x="560" y="176" width="230" height="34" rx="6"
-              [attr.fill]="checkFill(6)" [attr.stroke]="checkStroke(6)" />
-        <text x="675" y="198" class="check-text">3. User Grant (active?)</text>
-      </g>
+        <!-- Agent node -->
+        <g class="node" [class.emphasized]="isEmphasized(1)">
+          <rect x="60" y="140" width="200" height="180" rx="12" />
+          <text x="160" y="170" class="node-title">Goose Agent Chat</text>
+          <text x="160" y="190" class="node-sub">CF Instance Identity Cert</text>
+          <line x1="76" y1="206" x2="244" y2="206" stroke="var(--mat-sys-outline-variant)" stroke-dasharray="3 3" />
+          <text x="76" y="226" class="cert-detail">OU = organization:...</text>
+          <text x="76" y="246" class="cert-detail">OU = space:...</text>
+          <text x="76" y="266" class="cert-detail">OU = app:...</text>
+          <text x="76" y="300" class="node-sub-left">+ User SSO access token</text>
+        </g>
 
-      <!-- SSO Service -->
-      <g class="node sso-node">
-        <rect x="50" y="350" width="160" height="80" rx="8"
-              [attr.stroke]="nodeStroke(1)" [attr.stroke-width]="nodeStrokeWidth(1)" />
-        <text x="130" y="380" class="node-title">Tanzu SSO</text>
-        <text x="130" y="398" class="node-title">Service</text>
-        <text x="130" y="418" class="node-sub">User's access token</text>
-      </g>
+        <!-- Broker node -->
+        <g class="node" [class.emphasized]="isEmphasized(2)">
+          <rect x="360" y="140" width="200" height="180" rx="12" />
+          <text x="460" y="170" class="node-title">Credential Broker</text>
+          <text x="460" y="190" class="node-sub">.apps.internal:8443</text>
+          <text x="460" y="210" class="node-sub">mTLS Required</text>
+          <line x1="376" y1="226" x2="544" y2="226" stroke="var(--mat-sys-outline-variant)" stroke-dasharray="3 3" />
+          <text x="460" y="248" class="verify-label">VALIDATION PIPELINE</text>
+          <text x="460" y="285" class="node-sub">Each request passes</text>
+          <text x="460" y="302" class="node-sub">all three checks →</text>
+        </g>
 
-      <g class="node db-node">
-        <rect x="340" y="370" width="160" height="60" rx="8"
-              [attr.stroke]="nodeStroke(6)" [attr.stroke-width]="nodeStrokeWidth(6)" />
-        <text x="420" y="398" class="node-title">PostgreSQL</text>
-        <text x="420" y="415" class="node-sub">Grants + Delegations</text>
-      </g>
+        <!-- Check node 1: Workload Identity -->
+        <g class="check-node" [class.on]="isCheckOn(5)">
+          <rect x="600" y="140" width="280" height="44" rx="8" />
+          <circle cx="624" cy="162" r="11" fill="var(--mat-sys-surface-container-lowest)" stroke="var(--mat-sys-outline-variant)" />
+          <text x="624" y="162" class="check-num">1</text>
+          <text x="644" y="162" class="check-text">Workload Identity (mTLS cert)</text>
+        </g>
 
-      <g class="node target-node">
-        <rect x="600" y="370" width="180" height="60" rx="8"
-              [attr.stroke]="nodeStroke(7)" [attr.stroke-width]="nodeStrokeWidth(7)" />
-        <text x="690" y="398" class="node-title">MCP Server</text>
-        <text x="690" y="415" class="node-sub">GitHub, CF, etc.</text>
-      </g>
+        <!-- Check node 2: Delegation Token -->
+        <g class="check-node" [class.on]="isCheckOn(5)">
+          <rect x="600" y="194" width="280" height="44" rx="8" />
+          <circle cx="624" cy="216" r="11" fill="var(--mat-sys-surface-container-lowest)" stroke="var(--mat-sys-outline-variant)" />
+          <text x="624" y="216" class="check-num">2</text>
+          <text x="644" y="216" class="check-text">Delegation Token (JWT)</text>
+        </g>
 
-      <!-- Step 1: Agent has user's SSO token -->
-      <g class="step" [attr.opacity]="stepOpacity(1)">
-        <line x1="130" y1="275" x2="130" y2="350" class="flow-line"
-              marker-end="url(#arrow-primary)"
-              [attr.stroke-dashoffset]="lineDashOffset(1)" />
-        <circle cx="130" cy="315" r="10" class="step-number" />
-        <text x="130" y="315" class="step-num-text">1</text>
-        <text x="152" y="305" class="step-label label-right">User SSO</text>
-        <text x="152" y="318" class="step-label label-right">Token</text>
-      </g>
+        <!-- Check node 3: User Grant -->
+        <g class="check-node" [class.on]="isCheckOn(6)">
+          <rect x="600" y="248" width="280" height="44" rx="8" />
+          <circle cx="624" cy="270" r="11" fill="var(--mat-sys-surface-container-lowest)" stroke="var(--mat-sys-outline-variant)" />
+          <text x="624" y="270" class="check-num">3</text>
+          <text x="644" y="270" class="check-text">User Grant (active?)</text>
+        </g>
 
-      <!-- Step 2: Token Exchange over mTLS -->
-      <g class="step" [attr.opacity]="stepOpacity(2)">
-        <line x1="210" y1="130" x2="340" y2="130" class="flow-line mtls-line"
-              marker-end="url(#arrow-primary)"
-              [attr.stroke-dashoffset]="lineDashOffset(2)" />
-        <circle cx="275" cy="130" r="10" class="step-number" />
-        <text x="275" y="130" class="step-num-text">2</text>
-        <text x="275" y="85" class="step-label">Token Exchange (mTLS)</text>
-      </g>
+        <!-- SSO node -->
+        <g class="node" [class.emphasized]="isEmphasized(1)">
+          <rect x="60" y="415" width="200" height="80" rx="12" />
+          <text x="160" y="445" class="node-title">Tanzu SSO Service</text>
+          <text x="160" y="465" class="node-sub">Issues user's access token</text>
+          <text x="160" y="482" class="node-sub">p-identity</text>
+        </g>
 
-      <!-- Step 3: Broker issues delegation token -->
-      <g class="step" [attr.opacity]="stepOpacity(3)">
-        <path d="M 340,160 L 210,160" class="flow-line flow-return" fill="none"
-              marker-end="url(#arrow-tertiary)"
-              [attr.stroke-dashoffset]="lineDashOffset(3)" />
-        <circle cx="275" cy="160" r="10" class="step-number" />
-        <text x="275" y="160" class="step-num-text">3</text>
-        <text x="275" y="180" class="step-label">Delegation JWT Returned</text>
-      </g>
+        <!-- PostgreSQL node -->
+        <g class="node" [class.emphasized]="isEmphasized(6)">
+          <rect x="360" y="415" width="200" height="80" rx="12" />
+          <text x="460" y="445" class="node-title">PostgreSQL</text>
+          <text x="460" y="465" class="node-sub">Grants + Delegations</text>
+        </g>
 
-      <!-- Step 4: Credential request over mTLS -->
-      <g class="step" [attr.opacity]="stepOpacity(4)">
-        <line x1="210" y1="210" x2="340" y2="210" class="flow-line mtls-line"
-              marker-end="url(#arrow-primary)"
-              [attr.stroke-dashoffset]="lineDashOffset(4)" />
-        <circle cx="275" cy="210" r="10" class="step-number" />
-        <text x="275" y="210" class="step-num-text">4</text>
-        <text x="275" y="230" class="step-label">Credential Request</text>
-      </g>
+        <!-- MCP Server node -->
+        <g class="node" [class.emphasized]="isEmphasized(7)">
+          <rect x="680" y="415" width="220" height="80" rx="12" />
+          <text x="790" y="445" class="node-title">MCP Server</text>
+          <text x="790" y="465" class="node-sub">GitHub, CF, etc.</text>
+        </g>
 
-      <!-- Step 5: Broker checks (arrows to check boxes) -->
-      <g class="step" [attr.opacity]="stepOpacity(5)">
-        <line x1="520" y1="107" x2="560" y2="107" class="flow-line"
-              marker-end="url(#arrow-primary)"
-              [attr.stroke-dashoffset]="lineDashOffset(5)" />
-        <line x1="520" y1="150" x2="560" y2="150" class="flow-line"
-              marker-end="url(#arrow-primary)"
-              [attr.stroke-dashoffset]="lineDashOffset(5)" />
-        <line x1="520" y1="193" x2="560" y2="193" class="flow-line"
-              marker-end="url(#arrow-primary)"
-              [attr.stroke-dashoffset]="lineDashOffset(5)" />
-        <circle cx="540" cy="150" r="10" class="step-number" />
-        <text x="540" y="150" class="step-num-text">5</text>
-      </g>
+        <!-- Step 1: SSO → Agent (upward) -->
+        <g class="step" [attr.opacity]="stepOpacity(1)">
+          <path d="M 160,415 L 160,320" class="flow-line" marker-end="url(#arrow-primary)"
+                [attr.stroke-dashoffset]="lineDashOffset(1)" />
+          <rect class="annot" x="180" y="356" width="108" height="22" rx="11" />
+          <text class="annot-text" x="234" y="367">User SSO token</text>
+          <circle cx="160" cy="367" r="13" class="step-badge" />
+          <text x="160" y="367" class="step-num-text">1</text>
+        </g>
 
-      <!-- Step 6: Broker queries DB -->
-      <g class="step" [attr.opacity]="stepOpacity(6)">
-        <line x1="420" y1="275" x2="420" y2="370" class="flow-line"
-              marker-end="url(#arrow-primary)"
-              [attr.stroke-dashoffset]="lineDashOffset(6)" />
-        <circle cx="420" cy="325" r="10" class="step-number" />
-        <text x="420" y="325" class="step-num-text">6</text>
-        <text x="398" y="325" class="step-label label-left">Verify Grant</text>
-      </g>
+        <!-- Step 2: Agent → Broker mTLS token exchange (rail 1) -->
+        <g class="step" [attr.opacity]="stepOpacity(2)">
+          <path d="M 260,200 L 360,200" class="flow-line mtls-line" marker-end="url(#arrow-primary)"
+                [attr.stroke-dashoffset]="lineDashOffset(2)" />
+          <rect class="annot" x="260" y="165" width="100" height="22" rx="11" />
+          <text class="annot-text" x="310" y="176">Exchange (mTLS)</text>
+          <circle cx="310" cy="200" r="13" class="step-badge" />
+          <text x="310" y="200" class="step-num-text">2</text>
+        </g>
 
-      <!-- Step 7: Broker fetches from target -->
-      <g class="step" [attr.opacity]="stepOpacity(7)">
-        <line x1="520" y1="275" x2="600" y2="400" class="flow-line"
-              marker-end="url(#arrow-primary)"
-              [attr.stroke-dashoffset]="lineDashOffset(7)" />
-        <circle cx="560" cy="338" r="10" class="step-number" />
-        <text x="560" y="338" class="step-num-text">7</text>
-        <text x="582" y="338" class="step-label label-right">Fetch Credential</text>
-      </g>
+        <!-- Step 3: Broker → Agent delegation JWT (rail 2, return) -->
+        <g class="step" [attr.opacity]="stepOpacity(3)">
+          <path d="M 360,234 L 260,234" class="flow-line flow-return" fill="none" marker-end="url(#arrow-tertiary)"
+                [attr.stroke-dashoffset]="lineDashOffset(3)" />
+          <rect class="annot" x="260" y="244" width="100" height="22" rx="11" />
+          <text class="annot-text" x="310" y="255">Delegation JWT</text>
+          <circle cx="310" cy="234" r="13" class="step-badge return" />
+          <text x="310" y="234" class="step-num-text">3</text>
+        </g>
 
-      <!-- Step 8: Broker returns ResourceAccessToken -->
-      <g class="step" [attr.opacity]="stepOpacity(8)">
-        <path d="M 340,258 L 210,258" class="flow-line flow-return" fill="none"
-              marker-end="url(#arrow-tertiary)"
-              [attr.stroke-dashoffset]="lineDashOffset(8)" />
-        <circle cx="275" cy="258" r="10" class="step-number" />
-        <text x="275" y="258" class="step-num-text">8</text>
-        <text x="275" y="278" class="step-label">ResourceAccessToken</text>
-      </g>
-    </svg>
+        <!-- Step 4: Agent → Broker credential request (rail 3, mTLS) -->
+        <g class="step" [attr.opacity]="stepOpacity(4)">
+          <path d="M 260,288 L 360,288" class="flow-line mtls-line" marker-end="url(#arrow-primary)"
+                [attr.stroke-dashoffset]="lineDashOffset(4)" />
+          <rect class="annot" x="260" y="298" width="100" height="22" rx="11" />
+          <text class="annot-text" x="310" y="309">Credential req</text>
+          <circle cx="310" cy="288" r="13" class="step-badge" />
+          <text x="310" y="288" class="step-num-text">4</text>
+        </g>
+
+        <!-- Step 5: Broker → validation checks -->
+        <g class="step" [attr.opacity]="stepOpacity(5)">
+          <path d="M 560,216 L 600,216" class="flow-line" marker-end="url(#arrow-primary)"
+                [attr.stroke-dashoffset]="lineDashOffset(5)" />
+          <circle cx="580" cy="216" r="13" class="step-badge" />
+          <text x="580" y="216" class="step-num-text">5</text>
+        </g>
+
+        <!-- Step 6: Broker → PostgreSQL -->
+        <g class="step" [attr.opacity]="stepOpacity(6)">
+          <path d="M 460,320 L 460,415" class="flow-line" marker-end="url(#arrow-primary)"
+                [attr.stroke-dashoffset]="lineDashOffset(6)" />
+          <rect class="annot" x="482" y="357" width="100" height="22" rx="11" />
+          <text class="annot-text" x="532" y="368">Verify Grant</text>
+          <circle cx="460" cy="368" r="13" class="step-badge" />
+          <text x="460" y="368" class="step-num-text">6</text>
+        </g>
+
+        <!-- Step 7: Broker → MCP Server (diagonal) -->
+        <g class="step" [attr.opacity]="stepOpacity(7)">
+          <path d="M 560,300 L 760,415" class="flow-line" marker-end="url(#arrow-primary)"
+                [attr.stroke-dashoffset]="lineDashOffset(7)" />
+          <rect class="annot" x="588" y="335" width="120" height="22" rx="11" />
+          <text class="annot-text" x="648" y="346">Fetch Credential</text>
+          <circle cx="660" cy="358" r="13" class="step-badge" />
+          <text x="660" y="358" class="step-num-text">7</text>
+        </g>
+
+        <!-- Step 8: Broker → Agent ResourceAccessToken (rail 4, topmost return) -->
+        <g class="step" [attr.opacity]="stepOpacity(8)">
+          <path d="M 360,160 L 260,160" class="flow-line flow-return" fill="none" marker-end="url(#arrow-tertiary)"
+                [attr.stroke-dashoffset]="lineDashOffset(8)" />
+          <rect class="annot" x="248" y="126" width="124" height="22" rx="11" />
+          <text class="annot-text" x="310" y="137">ResourceAccessToken</text>
+          <circle cx="310" cy="160" r="13" class="step-badge return" />
+          <text x="310" y="160" class="step-num-text">8</text>
+        </g>
+
+      </svg>
+    </div>
+
+    <nav class="flow-stepper" role="tablist" aria-label="Credential brokering steps">
+      @for (step of flowSteps; track step.label; let i = $index) {
+        <button class="step-row" role="tab"
+                [class.active]="isActive(i)"
+                [class.done]="isDone(i)"
+                (click)="goToStep(i + 1)">
+          <div class="step-dot">
+            @if (isDone(i)) {
+              <mat-icon>check</mat-icon>
+            } @else {
+              {{ i + 1 }}
+            }
+          </div>
+          <div>
+            <div class="step-item-label">{{ step.label }}</div>
+            <div class="step-item-sub">{{ step.sub }}</div>
+          </div>
+        </button>
+      }
+    </nav>
   </div>
 </mat-dialog-content>
 
@@ -178,5 +219,5 @@
     <mat-icon>replay</mat-icon>
     Replay
   </button>
-  <button mat-button (click)="close()">Close</button>
+  <button mat-flat-button (click)="close()">Close</button>
 </mat-dialog-actions>
