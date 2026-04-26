@@ -1,0 +1,34 @@
+<div class="login-container">
+  <mat-card class="login-card" appearance="outlined">
+    <div class="login-header">
+      <mat-icon class="login-icon">psychology</mat-icon>
+      <h1 class="login-title">Goose Agent Chat</h1>
+      <p class="login-subtitle">Sign in to continue</p>
+    </div>
+
+    <form action="/login" method="post" class="login-form">
+      <input type="hidden" name="username" value="user">
+
+      <mat-form-field appearance="outline">
+        <mat-label>Password</mat-label>
+        <input matInput
+               type="password"
+               name="password"
+               autocomplete="current-password"
+               required
+               autofocus>
+      </mat-form-field>
+
+      @if (errorMessage()) {
+        <div class="login-error" role="alert">
+          <mat-icon>error_outline</mat-icon>
+          <span>{{ errorMessage() }}</span>
+        </div>
+      }
+
+      <button mat-flat-button color="primary" type="submit" class="login-submit">
+        Sign in
+      </button>
+    </form>
+  </mat-card>
+</div>

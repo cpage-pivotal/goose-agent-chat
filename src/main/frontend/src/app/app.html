@@ -1,28 +1,32 @@
-<div class="app-container">
-  <mat-toolbar color="primary" class="app-toolbar">
-    <mat-icon class="toolbar-icon">psychology</mat-icon>
-    <span class="toolbar-title">{{ title() }}</span>
-    <span class="toolbar-spacer"></span>
-    @if (isAuthenticated()) {
-      <button mat-icon-button [matMenuTriggerFor]="userMenu" class="user-menu-button">
-        <mat-icon>account_circle</mat-icon>
-      </button>
-      <mat-menu #userMenu="matMenu">
-        <div class="user-menu-header">
-          <mat-icon>person</mat-icon>
-          <span>{{ displayName() }}</span>
-        </div>
-        <button mat-menu-item (click)="logout()">
-          <mat-icon>logout</mat-icon>
-          <span>Sign out</span>
+@if (authLoaded()) {
+  @if (isAuthenticated()) {
+    <div class="app-container">
+      <mat-toolbar color="primary" class="app-toolbar">
+        <mat-icon class="toolbar-icon">psychology</mat-icon>
+        <span class="toolbar-title">{{ title() }}</span>
+        <span class="toolbar-spacer"></span>
+        <button mat-icon-button [matMenuTriggerFor]="userMenu" class="user-menu-button">
+          <mat-icon>account_circle</mat-icon>
         </button>
-      </mat-menu>
-    }
-  </mat-toolbar>
+        <mat-menu #userMenu="matMenu">
+          <div class="user-menu-header">
+            <mat-icon>person</mat-icon>
+            <span>{{ displayName() }}</span>
+          </div>
+          <button mat-menu-item (click)="logout()">
+            <mat-icon>logout</mat-icon>
+            <span>Sign out</span>
+          </button>
+        </mat-menu>
+      </mat-toolbar>
 
-  <div class="app-content">
-    <app-chat></app-chat>
-  </div>
-</div>
+      <div class="app-content">
+        <app-chat></app-chat>
+      </div>
+    </div>
+  } @else if (mode() === 'password') {
+    <app-login></app-login>
+  }
+}
 
 <router-outlet />
