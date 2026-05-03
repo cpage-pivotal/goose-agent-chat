@@ -231,34 +231,33 @@ skills:
 
 > **Note:** Git-based skills require network access during Cloud Foundry staging.
 
-#### 2. Local File-Based Skills
+#### 2. Local File-Based Skills (Bundled in the JAR)
 
 Reference skills from directories bundled with your application:
 
 ```yaml
 # .goose-config.yml
 skills:
-  - name: deployment
-    path: .goose/skills/deployment
+  - name: my-skill
+    path: goose/skills/my-skill
 ```
 
 The skill directory must contain a `SKILL.md` file with YAML frontmatter:
 
 ```markdown
 ---
-name: deployment
-description: Deployment workflow for this project
+name: my-skill
+description: What this skill does
 ---
 
-# Deployment Steps
-1. Build the application
-2. Run integration tests
-3. Deploy to staging
-4. Verify health checks
-5. Deploy to production
+# My Skill
+
+Instructions for Goose...
 ```
 
-Place skill directories in `src/main/resources/skills/` so they're bundled in the JAR.
+Place skill directories under `src/main/resources/` so they're bundled into the JAR. For example, a skill at `src/main/resources/goose/skills/my-skill/SKILL.md` is referenced as `path: goose/skills/my-skill`.
+
+> **How it works:** The goose-buildpack runs before the Java buildpack, so the JAR hasn't been exploded yet when skills are configured. The buildpack automatically extracts `path:`-only skills from `BOOT-INF/classes/` inside the JAR before configuring them — no extra setup required. You'll see lines like `Extracted skill path from JAR: goose/skills/my-skill` in the staging log.
 
 #### 3. Inline Skills
 
@@ -526,6 +525,10 @@ skills:
     source: https://github.com/org/goose-skills.git
     branch: main
     path: plugins/cf-space-auditor/skills/cf-space-auditor
+
+  # Local skill bundled in the JAR (src/main/resources/goose/skills/my-skill/)
+  - name: my-skill
+    path: goose/skills/my-skill
 
   - name: code-review
     description: Code review checklist
