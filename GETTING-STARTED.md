@@ -149,14 +149,28 @@ OAuth credentials for MCP servers (GitHub, Cloud Foundry, etc.) are managed cent
 
 ### Configuration
 
-Set the `BROKER_BASE_URL` environment variable to point to the deployed broker:
+Two environment variables connect goose-agent-chat to the broker:
 
 ```yaml
 # vars.yaml
-BROKER_BASE_URL: https://agent-credential-broker.apps.example.com
+
+# Internal container-to-container (C2C) URL used by the backend to call the broker.
+# Routed over the apps.internal domain using mTLS — never hits the public router.
+BROKER_BASE_URL: https://agent-credential-broker.apps.internal:8443
+
+# Public URL surfaced to the browser so users can navigate to the broker's grants UI.
+BROKER_PUBLIC_URL: https://agent-credential-broker.apps.example.com
 ```
 
-This is the only configuration needed in goose-agent-chat. The broker manages all OAuth client registrations, token storage, and refresh logic.
+After deploying both applications, enable the container-to-container network connection:
+
+```bash
+cf add-network-policy goose-agent-chat agent-credential-broker --protocol tcp --port 8443
+```
+
+This allows goose-agent-chat to reach the broker directly over the internal `apps.internal` network on port 8443. Without this policy, backend calls to `BROKER_BASE_URL` will time out even if the URL is correct.
+
+The broker manages all OAuth client registrations, token storage, and refresh logic — no additional credential configuration is needed in goose-agent-chat.
 
 ### MCP Server Configuration
 
@@ -339,6 +353,16 @@ cf push --vars-file vars.yaml
    - `java_buildpack_offline` - Configures JRE 21 and starts the application
 3. **Starting** - Application starts and listens on the assigned port
 4. **Binding** - Cloud Foundry injects service credentials if services are bound
+
+#### Enabling Broker Connectivity
+
+If you are using the Agent Credential Broker, add the container-to-container network policy after both apps are deployed:
+
+```bash
+cf add-network-policy goose-agent-chat agent-credential-broker --protocol tcp --port 8443
+```
+
+This must be run once per environment. Without it, goose-agent-chat cannot reach the broker's internal `apps.internal` address and session creation will fail.
 
 #### Verifying the Deployment
 
@@ -560,7 +584,10 @@ mcpServers:
 And the corresponding `vars.yaml` for secrets:
 
 ```yaml
-BROKER_BASE_URL: https://agent-credential-broker.apps.example.com
+# Internal C2C URL — requires cf add-network-policy (see Credential Management section)
+BROKER_BASE_URL: https://agent-credential-broker.apps.internal:8443
+# Public URL — shown to users when they need to manage their grants
+BROKER_PUBLIC_URL: https://agent-credential-broker.apps.example.com
 ANTHROPIC_API_KEY: sk-ant-xxxxx
 ```
 

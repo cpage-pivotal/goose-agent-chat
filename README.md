@@ -182,12 +182,26 @@ OAuth credentials for MCP servers (GitHub, Cloud Foundry, etc.) are managed by t
 
 ### Configuration
 
-Set the `BROKER_BASE_URL` environment variable to enable broker integration:
+Two environment variables are required to enable broker integration:
 
 ```yaml
 # manifest.yml or vars.yaml
-BROKER_BASE_URL: https://agent-credential-broker.apps.example.com
+
+# Internal container-to-container (C2C) URL — used by goose-agent-chat to call the broker
+# Routed over the apps.internal domain; requires a network policy (see below)
+BROKER_BASE_URL: https://agent-credential-broker.apps.internal:8443
+
+# Public URL — surfaced to the browser so users can navigate to the broker's grants UI
+BROKER_PUBLIC_URL: https://agent-credential-broker.apps.example.com
 ```
+
+After deploying both apps, allow goose-agent-chat to reach the broker over the internal network:
+
+```bash
+cf add-network-policy goose-agent-chat agent-credential-broker --protocol tcp --port 8443
+```
+
+This enables secure container-to-container communication on the `apps.internal` domain without exposing the broker's internal traffic through the public router.
 
 MCP servers that require authentication should have `brokerAuth: true` in `.goose-config.yml`. The `url` field can be omitted — the broker provides the MCP server URL at runtime alongside the credential. No `clientId`, `clientSecret`, or `scopes` are needed either — those are all managed by the broker.
 
@@ -215,7 +229,8 @@ mcpServers:
 | Variable | Description |
 |----------|-------------|
 | `GOOSE_CLI_PATH` | Path to Goose CLI binary |
-| `BROKER_BASE_URL` | Agent Credential Broker URL |
+| `BROKER_BASE_URL` | Internal C2C URL to Agent Credential Broker (apps.internal:8443) |
+| `BROKER_PUBLIC_URL` | Public URL for broker grants UI (shown to users in the browser) |
 | `ANTHROPIC_API_KEY` | Anthropic API key |
 | `OPENAI_API_KEY` | OpenAI API key |
 | `GOOGLE_API_KEY` | Google AI API key |
