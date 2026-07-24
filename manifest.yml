@@ -4,22 +4,31 @@ applications:
     path: target/goose-agent-chat-1.0.0.jar
     memory: 2G
     buildpacks:
-      - https://github.com/cpage-pivotal/goose-buildpack
+      - https://((GITHUB_PAT))@github.com/cpage-pivotal/goose-buildpack
       - java_buildpack_offline
-    services:
-      - agent-sso
     env:
       JBP_CONFIG_OPEN_JDK_JRE: '{ jre: { version: 21.+ } }'
       GOOSE_ENABLED: true
-      # GOOSE_VERSION: 1.27.2
+      # Activates application-oauth.properties (Keycloak OAuth2 login)
+      SPRING_PROFILES_ACTIVE: oauth
+      OIDC_ISSUER_URI: ((OIDC_ISSUER_URI))
+      OIDC_CLIENT_ID: ((OIDC_CLIENT_ID))
+      OIDC_CLIENT_SECRET: ((OIDC_CLIENT_SECRET))
+      # GOOSE_VERSION: 1.41.0
       # Agent Credential Broker internal URL for mTLS C2C communication
       BROKER_BASE_URL: ((BROKER_BASE_URL))
       # Public broker URL for browser links (grants page, etc.)
       BROKER_PUBLIC_URL: ((BROKER_PUBLIC_URL))
       # Provider/model configuration is in .goose-config.yml (src/main/resources)
       # API key for the configured provider (set via CredHub or cf set-env):
-      # OPENAI_API_KEY: ((OPENAI_API_KEY))
+      APP_AUTH_SECRET: ((APP_AUTH_SECRET))
+      OPENAI_API_KEY: ((OPENAI_API_KEY))
       # ANTHROPIC_API_KEY: ((ANTHROPIC_API_KEY))
       # GOOGLE_API_KEY: ((GOOGLE_API_KEY))
       # DATABRICKS_HOST: ((DATABRICKS_HOST))
       # DATABRICKS_TOKEN: ((DATABRICKS_TOKEN))
+      MAILGUN_API_KEY: ((MAILGUN_API_KEY))
+      GOOGLE_CHAT_SPACES: ((GOOGLE_CHAT_SPACES))
+      TANZU_HUB_URL: ((TANZU_HUB_URL))
+      TANZU_HUB_USER: ((TANZU_HUB_USER))
+      TANZU_HUB_PASSWORD: ((TANZU_HUB_PASSWORD))

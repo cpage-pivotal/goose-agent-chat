@@ -8,7 +8,7 @@
 provider: openai
 
 # Model to use with the provider
-model: gpt-5.4
+model: gpt-5.6-terra
 
 # Extensions to enable by default
 extensions:
@@ -20,3 +20,26 @@ session:
   # Maximum turns before requiring user input (prevents runaway sessions)
   max_turns: 100
 
+env:
+  TANZU_HUB_URL: "${TANZU_HUB_URL}"
+  TANZU_HUB_USER: "${TANZU_HUB_USER}"
+  TANZU_HUB_PASSWORD: "${TANZU_HUB_PASSWORD}"
+
+# Both MCP servers start disabled to keep their tool schemas out of context
+# until actually needed. The matching skill below tells the model to call
+# manage_extensions to enable one, on demand, when a request needs it.
+mcpServers:
+  - name: github
+    type: streamable_http
+    brokerAuth: true
+    enabled: false
+  - name: tanzu-hub
+    type: streamable_http
+    brokerAuth: true
+    enabled: false
+
+skills:
+  - name: github
+    path: .goose/skills/github
+  - name: tanzu-hub
+    path: .goose/skills/tanzu-hub

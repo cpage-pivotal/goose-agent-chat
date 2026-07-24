@@ -17,7 +17,7 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 
 @Configuration
@@ -47,8 +47,8 @@ public class SecurityConfig {
                         .defaultAuthenticationEntryPointFor(
                                 new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
                                 new OrRequestMatcher(
-                                        new AntPathRequestMatcher("/api/**"),
-                                        new AntPathRequestMatcher("/auth/**")
+                                        PathPatternRequestMatcher.pathPattern("/api/**"),
+                                        PathPatternRequestMatcher.pathPattern("/auth/**")
                                 )
                         )
                 );

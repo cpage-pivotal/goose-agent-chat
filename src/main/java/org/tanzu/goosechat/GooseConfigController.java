@@ -66,7 +66,7 @@ public class GooseConfigController {
                 m.url(),
                 m.command(),
                 m.args(),
-                m.requiresAuth()
+                m.brokerAuth()
             ))
             .toList();
 

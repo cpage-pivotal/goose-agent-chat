@@ -1,187 +1,100 @@
-# Chat with Goose
+---
+name: chat-with-goose
+description: >-
+  Send messages to the Goose Agent Chat app and stream the response (including which
+  MCP tools Goose invokes). Use this whenever the user wants to "chat with goose",
+  "ask goose", "send a message to goose", drive/test the Goose Agent Chat app, or
+  verify that an MCP flow (e.g. GitHub or tanzu-hub via the credential broker) works
+  end to end. The app authenticates via Keycloak SSO (federated to Google/GitHub),
+  so login happens once in a browser and this skill reuses that session.
+---
 
-**Description:** Send messages to the Goose Agent Chat application with automatic SSO authentication and session management.
+# Chat with Goose Agent Chat
 
-**Usage:**
-- `/chat-with-goose <username> <password> <message>` - Send a message to Goose with SSO credentials
-- Can also be invoked by saying "chat with goose" or "send message to goose"
+## Auth model (read this first)
 
-## Configuration
+The app (default `https://goose-agent-chat.apps.tas-ndc.kuhn-labs.com`) logs users in
+with **Keycloak SSO, federated to Google/GitHub**. There is **no headless username/
+password login** — a federated user has no local password to POST, and Google's login
+can't be scripted. So the model is:
 
-- **App URL:** https://goose-agent-chat.apps.tas-ndc.kuhn-labs.com (default, configurable)
-- **Username:** Provided by user (SSO username)
-- **Password:** Provided by user (SSO password)
-- **Cookie File:** /tmp/goose-chat-cookies.txt
-- **Session File:** /tmp/goose-chat-session.txt
-- **Username Cache:** /tmp/goose-chat-username.txt
-- **Password Cache:** /tmp/goose-chat-password.txt
-- **URL Cache:** /tmp/goose-chat-url.txt
+1. **Log in once in a real browser** (interactive — the human completes the Google/GitHub step).
+2. **Reuse that browser's session cookies** for scripted messaging.
 
-## Session ID Handoff
+Two cookies matter and the helper carries both: `JSESSIONID` (the server session) and
+`__VCAP_ID__` (CF sticky-routing — it pins the app instance holding your session;
+without it you can land on an instance that doesn't know you).
 
-To reuse a browser session (e.g., one where MCP OAuth authentication has already been completed), pass the session ID with `--session`:
+## Step 1 — Get an authenticated browser session
+
+Use `playwright-cli`. Open the app headed and let the user finish the SSO login:
 
 ```bash
-./.claude/skills/chat-with-goose/goose-chat-helper.sh --session chat-a1b2c3d4 "Your message"
+playwright-cli -s=goose open "https://goose-agent-chat.apps.tas-ndc.kuhn-labs.com/" --headed
 ```
 
-The session ID is validated against the server. If the session is still active (within 30-minute inactivity window), it will be reused and all MCP OAuth tokens associated with that session will be available. If the session has expired, a new session is created automatically.
+The app redirects to Keycloak; the user clicks Google (or GitHub) and completes it. If a
+realm session already exists in that browser, it may sign in silently. Confirm success:
 
-The UI provides a **copy session ID** button (clipboard icon next to the truncated session ID in the header) that copies the full session ID to the clipboard.
-
-## Instructions
-
-When the user wants to chat with the Goose Agent Chat application, use the helper script.
-
-### URL Configuration
-
-The script uses `https://goose-agent-chat.apps.tas-ndc.kuhn-labs.com` by default.
-
-**To use a different URL:**
-
-1. **Provide URL inline:**
-   ```bash
-   ./.claude/skills/chat-with-goose/goose-chat-helper.sh --url https://my-app.example.com --username USER --password PASSWORD "Message"
-   ```
-
-2. **URL is cached:**
-   - Once provided, custom URLs are cached in `/tmp/goose-chat-url.txt`
-   - Subsequent calls reuse the cached URL
-   - To switch back to default, delete the cache file
-
-### Credential Handling
-
-**IMPORTANT:** The user must provide SSO credentials (username and password). You have three options:
-
-1. **User provides credentials inline:**
-   ```bash
-   ./.claude/skills/chat-with-goose/goose-chat-helper.sh --username USER --password PASSWORD "User's message here"
-   ```
-
-2. **User provides credentials separately:**
-   Ask the user for credentials first, then pass them to the script:
-   ```bash
-   ./.claude/skills/chat-with-goose/goose-chat-helper.sh --username=USER --password=PASSWORD "User's message here"
-   ```
-
-3. **Prompt user for credentials:**
-   If the user doesn't provide credentials, the script will prompt for them:
-   ```bash
-   ./.claude/skills/chat-with-goose/goose-chat-helper.sh "User's message here"
-   # Script will prompt: "Enter SSO username: "
-   # Script will prompt: "Enter SSO password: "
-   ```
-
-**Credential Caching:**
-- Once provided (via argument or prompt), both username and password are cached in `/tmp/goose-chat-username.txt` and `/tmp/goose-chat-password.txt`
-- Subsequent calls reuse the cached credentials automatically
-- If authentication fails, both caches are cleared and the user must provide credentials again
-- Cache files have restrictive permissions (600) for security
-
-### Usage Flow
-
-The helper script automatically:
-1. Checks if credentials are provided or cached
-2. Prompts for credentials if needed
-3. Checks authentication status via cookies
-4. Authenticates via SSO if needed (multi-step OAuth2 flow against UAA)
-5. Gets or creates a chat session (reuses existing active sessions)
-6. Sends the message and streams the response
-7. Parses SSE events and displays formatted output
-
-### Response Format
-
-The script parses Server-Sent Events (SSE) and displays:
-- **Token events**: Goose's text response (concatenated and displayed in real-time)
-- **Tool call events**: MCP tool invocations shown as `[Tool Call: extension/toolName]` in yellow
-- **Complete event**: Final token count
-- **Error events**: Any errors that occur
-
-Tool call events are displayed on stderr so they don't interfere with the response text on stdout. Use these to verify which MCP tools Goose actually invoked during a conversation (e.g., to evaluate conformance with expected agent flows).
-
-### Manual Implementation (if needed)
-
-If the helper script is not available or you need fine-grained control:
-
-1. **Initiate SSO**: GET `/oauth2/authorization/sso` with a cookie jar, follow redirects to the UAA login page
-2. **Extract CSRF token**: Parse the `X-Uaa-Csrf` hidden input value from the UAA login page HTML
-3. **Submit credentials**: POST to the UAA `/login.do` endpoint with `username`, `password`, and `X-Uaa-Csrf` fields
-4. **Follow OAuth callback**: GET the redirect URL returned by UAA (follows redirect chain back to the app with an authorization code)
-5. **Verify authentication**: GET `/auth/status` - should return `{"authenticated":true, ...}`
-6. **Create Session**: POST to `/api/chat/sessions` with empty JSON body
-7. **Send Message**: GET to `/api/chat/sessions/{sessionId}/stream?message={urlEncodedMessage}`
-8. **Parse SSE**: Extract token events and concatenate the response
-
-See `goose-chat-helper.sh` for detailed implementation.
-
-## Error Handling
-
-- If authentication fails, inform the user and stop
-- If session creation fails, show error details
-- If the streaming request times out or fails, show the error
-- If cookies expire, re-authenticate automatically
-
-## Examples
-
-### Example 1: User provides credentials inline
-
-User says: "Chat with Goose using username 'myuser' and password 'mypass' and ask about Spring Boot best practices"
-
-Execute:
 ```bash
-./.claude/skills/chat-with-goose/goose-chat-helper.sh --username myuser --password mypass "What are Spring Boot best practices?"
+playwright-cli -s=goose eval "async()=>{const r=await fetch('/auth/status',{credentials:'include'});return (await r.json()).authenticated;}"
 ```
 
-### Example 2: User provides credentials separately
+Reuse an existing logged-in `playwright-cli` session if you already have one — no need to
+open a new browser.
 
-User says: "My SSO username is 'myuser' and password is 'mypass'. Now chat with Goose and ask about microservices"
+## Step 2 — Send messages with the helper
 
-Execute:
+`goose-chat-helper.sh` extracts the cookies from the browser session and drives the chat
+(create/reuse session → stream → parse SSE). Pass the playwright session name:
+
 ```bash
-./.claude/skills/chat-with-goose/goose-chat-helper.sh --username=myuser --password=mypass "Tell me about microservices architecture"
+./goose-chat-helper.sh --from-playwright goose "List the names of 3 of my GitHub repositories"
 ```
 
-### Example 3: No credentials provided (will prompt)
+- The working cookie is cached (`/tmp/goose-chat-cookie.txt`, mode 600) and the chat
+  session id in `/tmp/goose-chat-session.txt`, so **follow-up messages need no flags** and
+  continue the same conversation:
+  ```bash
+  ./goose-chat-helper.sh "and how many open issues does the first one have?"
+  ```
+- Force a specific conversation with `--session chat-abc123` (the UI's copy-session-id
+  button gives you the id). Start fresh with `rm /tmp/goose-chat-session.txt`.
+- A different deployment: `--url https://my-goose.example.com` (cached after first use).
+- Explicit cookies instead of a browser: `--cookie "JSESSIONID=...; __VCAP_ID__=..."`.
 
-User says: "Chat with Goose and ask how to optimize database queries"
+When the cached cookie stops authenticating (session timed out — the app expires idle
+sessions after ~30 min, and every redeploy drops in-memory sessions), the helper says so
+and clears the cache. Re-do Step 1 (the browser session usually just needs a fresh SSO
+bounce) and re-run with `--from-playwright`.
 
-Execute:
-```bash
-./.claude/skills/chat-with-goose/goose-chat-helper.sh "How do I optimize database queries in Spring Boot?"
-```
+## Reading the output
 
-The script will prompt: `Enter SSO username:` and `Enter SSO password:` and wait for user input.
+The helper prints, to **stderr** (so it doesn't pollute the response text on stdout):
+- `✓ Authenticated as <email>` and the session id
+- `[Tool Call: <extension>/<tool>]` for each MCP tool Goose invokes — use these to verify
+  an agent actually exercised the expected flow (e.g. `github/get_me`, or a `tanzu-hub`
+  tool). MCP servers start disabled and are enabled on demand, so expect an
+  `extensionmanager/manage_extensions` call before the first real tool call.
 
-### Example 4: Using cached credentials
+Goose's text answer streams to **stdout**, ending with `✓ Complete (N tokens)`.
 
-User says: "Ask Goose another question about Spring Security"
+**Example** — `--from-playwright goose "show my GitHub username"` yields tool calls
+`extensionmanager/manage_extensions` then `github/get_me`, and the response
+"Your GitHub username is **cpage-pivotal**." A real GitHub tool call returning the correct
+username confirms the whole broker credential path (Keycloak login → token exchange →
+delegation → GitHub token) is working.
 
-Execute:
-```bash
-./.claude/skills/chat-with-goose/goose-chat-helper.sh "Explain Spring Security best practices"
-```
+## If a fully non-interactive path is ever needed
 
-The script will use the cached credentials from previous authentication (no prompt needed).
+It isn't possible for the current setup without app changes: the app is an OAuth2 **client**
+(session-cookie auth), not a resource server, so a bearer token from a Keycloak
+`client_credentials`/ROPC grant would not authenticate its `/api/chat` endpoints. Making
+that work would require (a) a **local** (non-federated) Keycloak user with a password and a
+client with direct-access grants, and (b) adding resource-server JWT auth to the app so it
+accepts bearer tokens. Out of scope here — the browser-session approach above is the
+supported path.
 
-### Example 5: Using custom URL
+## Requirements
 
-User says: "Connect to my Goose instance at https://goose.mycompany.com using username 'admin' password 'secret' and ask about deployment"
-
-Execute:
-```bash
-./.claude/skills/chat-with-goose/goose-chat-helper.sh --url https://goose.mycompany.com --username admin --password secret "How do I deploy to production?"
-```
-
-The custom URL will be cached and reused for subsequent requests.
-
-## Notes
-
-- Sessions timeout after 30 minutes of inactivity by default
-- The skill maintains state using temporary files for cookies, session ID, credentials, and URL
-- Multiple invocations reuse the same session for conversation continuity
-- **Clear cached data:**
-  - Fresh conversation: `rm /tmp/goose-chat-session.txt`
-  - Clear credentials: `rm /tmp/goose-chat-username.txt /tmp/goose-chat-password.txt`
-  - Reset to default URL: `rm /tmp/goose-chat-url.txt`
-  - Clear everything: `rm /tmp/goose-chat-cookies.txt /tmp/goose-chat-session.txt /tmp/goose-chat-username.txt /tmp/goose-chat-password.txt /tmp/goose-chat-url.txt`
-- **Security:** Credentials and URL are never stored in the skill code, only in temporary files with restrictive permissions (600)
+`playwright-cli`, `curl`, `jq`, `python3`.

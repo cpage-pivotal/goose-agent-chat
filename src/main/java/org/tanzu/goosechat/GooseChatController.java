@@ -1,7 +1,7 @@
 package org.tanzu.goosechat;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import org.tanzu.goose.cf.GooseExecutor;
 import org.tanzu.goose.cf.GooseExecutionException;
@@ -706,7 +706,7 @@ public class GooseChatController {
         String accessToken = authorizedClient.getAccessToken().getTokenValue();
 
         List<String> allowedSystems = executor.getConfiguration().mcpServers().stream()
-                .filter(McpServerInfo::requiresAuth)
+                .filter(McpServerInfo::brokerAuth)
                 .map(McpServerInfo::name)
                 .toList();
 
