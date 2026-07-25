@@ -679,9 +679,9 @@ public class GooseChatController {
     }
 
     /**
-     * Obtain a delegation token from the broker using the current user's UAA access token.
-     * The access token (a JWT on the uaa plan) is validated by the broker via the shared
-     * UAA JWKS endpoint (same p-identity SSO instance).
+     * Obtain a delegation token from the broker using the current user's OIDC access token.
+     * The access token (a JWT) is validated by the broker via the shared JWKS endpoint of
+     * the OIDC provider — both apps must point at the same issuer.
      */
     private String obtainDelegationToken() {
         var auth = SecurityContextHolder.getContext().getAuthentication();

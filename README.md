@@ -11,7 +11,7 @@ A full-stack web application providing a chat interface for interacting with [Go
 - **Material Design 3**: Modern, responsive UI using Angular Material
 - **Multi-Provider Support**: Works with Anthropic, OpenAI, Google, Databricks, and Ollama
 - **Agent Credential Broker**: Centralized credential management for OAuth-protected MCP servers via delegation tokens
-- **Authentication**: Tanzu SSO (p-identity) single sign-on via OAuth2
+- **Authentication**: OIDC single sign-on (Keycloak) via OAuth2, with a shared-secret form-login fallback
 - **Cloud Foundry Ready**: Deployable with the Goose buildpack
 
 ## Prerequisites
@@ -144,29 +144,37 @@ cf push --vars-file vars.yaml
 
 ## Authentication
 
-All requests require authentication via Tanzu SSO (`p-identity` service binding).
+All requests require authentication. The app boots in one of two modes, selected automatically at startup:
 
-### How it works
+| Mode | When | Login |
+|------|------|-------|
+| `OAUTH2` | An OAuth2 client registration is configured (the `oauth` Spring profile is active) | OIDC provider (Keycloak) |
+| `PASSWORD` | No client registration | Form login with a shared secret |
 
-- Spring Security is configured with `oauth2Login` as the sole authentication mechanism. Unauthenticated requests are redirected to the SSO authorization endpoint.
-- The `java-cfenv-boot-pivotal-sso` library auto-configures the OAuth2 client registration from the `p-identity` service binding in `VCAP_SERVICES`.
-- Each user gets a unique identity via the `sub` claim from UAA, available through the `/auth/status` endpoint as `userId`.
+`AuthModeProvider` makes this decision by checking whether a `ClientRegistrationRepository` bean exists. `/auth/status` reports the active `mode` and the `loginUrl` the frontend should use.
 
-### Setting up SSO on Cloud Foundry
+### OAUTH2 mode
 
-The app requires a `p-identity` service instance bound as `agent-sso` in `manifest.yml`. This should be the same SSO instance used by the Agent Credential Broker, so that user identities are consistent across both apps.
+- Nothing in the code is provider-specific — plain `oauth2Login`, issuer-uri discovery, no role mapping. Keycloak is what's deployed in practice, but any OIDC provider works.
+- Configured in `src/main/resources/application-oauth.properties`, loaded only under the `oauth` profile. Gating it behind a profile is what preserves the PASSWORD fallback: with no profile there is no client registration, so OAuth2 property validation never runs.
+- Each user gets a unique identity via the `sub` claim, available through `/auth/status` as `userId`.
 
-```bash
-# Create an SSO service instance (plan name may vary by foundation)
-cf create-service p-identity <plan> agent-sso
+Set on Cloud Foundry via `manifest.yml` (values in `vars.yaml`):
 
-# Deploy (manifest.yml already declares the agent-sso service binding)
-cf push --vars-file vars.yaml
+```yaml
+SPRING_PROFILES_ACTIVE: oauth
+OIDC_ISSUER_URI: ((OIDC_ISSUER_URI))
+OIDC_CLIENT_ID: ((OIDC_CLIENT_ID))
+OIDC_CLIENT_SECRET: ((OIDC_CLIENT_SECRET))
 ```
 
-### Local development
+Register `https://<app-route>/login/oauth2/code/sso` as a valid redirect URI with the provider. The provider should be the same one used by the Agent Credential Broker, so user identities are consistent across both apps.
 
-For local development without a `p-identity` binding, configure a Spring Security OAuth2 client registration manually in `application.properties` or use a local OAuth2 provider.
+### PASSWORD mode
+
+Without the `oauth` profile, the app serves a form login for a single user `user`, with the password taken from `APP_AUTH_SECRET` (`app.auth.secret`, default `changeme`). This is the default for local development — `./mvnw spring-boot:run` needs no OIDC setup.
+
+Setting `BROKER_BASE_URL` in PASSWORD mode is a **fail-fast startup error**: the Agent Credential Broker requires real user identities.
 
 ## Credential Management
 
@@ -175,7 +183,7 @@ OAuth credentials for MCP servers (GitHub, Cloud Foundry, etc.) are managed by t
 ### How it works
 
 1. A user pre-authorizes target systems (e.g., GitHub) in the Credential Broker's UI
-2. At session creation, goose-agent-chat obtains a **delegation token** from the broker using the user's UAA access token
+2. At session creation, goose-agent-chat obtains a **delegation token** from the broker using the user's OIDC access token
 3. Before each Goose execution, the delegation token is used to request short-lived **resource access tokens** from the broker
 4. The broker returns the credential **and** the MCP server URL for each target system
 5. Both are injected into Goose's `config.yaml` — the URL as the server endpoint and the credential as an `Authorization` header

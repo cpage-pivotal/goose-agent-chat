@@ -137,14 +137,15 @@ OAuth credentials for MCP servers (GitHub, Cloud Foundry, etc.) are managed cent
 ### How It Works
 
 1. **User grants access** — A user pre-authorizes target systems (e.g., GitHub, Cloud Foundry) in the Credential Broker's web UI
-2. **Delegation token** — At session creation, goose-agent-chat obtains a signed delegation token from the broker, using the user's UAA access token for authentication
+2. **Delegation token** — At session creation, goose-agent-chat obtains a signed delegation token from the broker, using the user's OIDC access token for authentication
 3. **Credential injection** — Before each Goose execution, the delegation token is exchanged for short-lived access tokens for each MCP server. The broker also returns the MCP server URL for each target system.
 4. **Transparent auth** — Access tokens and MCP server URLs are injected into Goose's `config.yaml`, so MCP servers receive authenticated requests at the correct endpoints
 
 ### Prerequisites
 
 - The Agent Credential Broker must be deployed and accessible
-- Both goose-agent-chat and the broker must share the same `p-identity` SSO service instance (`agent-sso`), so user identities are consistent
+- Both goose-agent-chat and the broker must authenticate against the same OIDC provider (same issuer and realm), so user identities are consistent
+- goose-agent-chat must be running in OAUTH2 mode — setting `BROKER_BASE_URL` without the `oauth` profile is a fail-fast startup error
 - The user must have active grants in the broker for the target systems they want to use
 
 ### Configuration
@@ -215,7 +216,7 @@ Check `cf logs goose-agent-chat --recent` for broker-related errors. Common caus
 - `BROKER_BASE_URL` not set or pointing to an incorrect URL
 - The broker is down or unreachable
 - The user's delegation token has expired (tokens are re-acquired per session)
-- The SSO service instance differs between goose-agent-chat and the broker
+- The OIDC issuer differs between goose-agent-chat and the broker
 
 ---
 
@@ -415,11 +416,16 @@ applications:
     buildpacks:
       - https://github.com/cpage-pivotal/goose-buildpack
       - java_buildpack_offline
-    services:
-      - agent-sso
     env:
       JBP_CONFIG_OPEN_JDK_JRE: '{ jre: { version: 21.+ } }'
       GOOSE_ENABLED: true
+
+      # OIDC login — without these the app falls back to shared-secret form login
+      SPRING_PROFILES_ACTIVE: oauth
+      OIDC_ISSUER_URI: ((OIDC_ISSUER_URI))
+      OIDC_CLIENT_ID: ((OIDC_CLIENT_ID))
+      OIDC_CLIENT_SECRET: ((OIDC_CLIENT_SECRET))
+
       BROKER_BASE_URL: ((BROKER_BASE_URL))
       
       # API key for your provider (use CredHub for production)

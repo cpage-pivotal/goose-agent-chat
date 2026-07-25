@@ -103,8 +103,9 @@ public class SecurityConfig {
 
     /**
      * Only registered when no {@link ClientRegistrationRepository} is present
-     * (i.e. {@code agent-sso} is not bound), which is the same signal
-     * {@link AuthModeProvider} uses to select PASSWORD mode.
+     * (i.e. no OAuth2 client registration is configured, so the {@code oauth} profile
+     * is inactive), which is the same signal {@link AuthModeProvider} uses to select
+     * PASSWORD mode.
      */
     @Bean
     @ConditionalOnMissingBean(ClientRegistrationRepository.class)

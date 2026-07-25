@@ -9,13 +9,13 @@ import java.util.Optional;
 /**
  * Determines which authentication mode the app boots in.
  *
- * <p>SSO presence is detected via {@code Optional<ClientRegistrationRepository>} —
- * {@code java-cfenv-boot-pivotal-sso} only registers this bean when the
- * {@code agent-sso} service binding is present.
+ * <p>SSO presence is detected via {@code Optional<ClientRegistrationRepository>}. That bean
+ * only exists when an OAuth2 client registration is configured, which happens when the
+ * {@code oauth} profile loads {@code application-oauth.properties}.
  *
  * <p>Mode matrix:
  * <pre>
- * | agent-sso bound? | BROKER_BASE_URL set? | Mode             |
+ * | OIDC registered? | BROKER_BASE_URL set? | Mode             |
  * |------------------|----------------------|------------------|
  * | yes              | (any)                | OAUTH2           |
  * | no               | no                   | PASSWORD         |
@@ -33,16 +33,17 @@ public class AuthModeProvider {
             Optional<ClientRegistrationRepository> clientRegistrationRepository,
             @Value("${broker.base-url:}") String brokerBaseUrl) {
 
-        boolean ssoBound = clientRegistrationRepository.isPresent();
+        boolean oidcConfigured = clientRegistrationRepository.isPresent();
         boolean brokerSet = brokerBaseUrl != null && !brokerBaseUrl.isBlank();
 
-        if (!ssoBound && brokerSet) {
+        if (!oidcConfigured && brokerSet) {
             throw new IllegalStateException(
-                    "Agent Credential Broker is configured (BROKER_BASE_URL is set) but the " +
-                    "agent-sso service binding is missing. Bind agent-sso or unset BROKER_BASE_URL.");
+                    "Agent Credential Broker is configured (BROKER_BASE_URL is set) but no OAuth2 " +
+                    "client registration was found. Activate the \"oauth\" profile with " +
+                    "OIDC_ISSUER_URI/OIDC_CLIENT_ID/OIDC_CLIENT_SECRET set, or unset BROKER_BASE_URL.");
         }
 
-        this.mode = ssoBound ? AuthMode.OAUTH2 : AuthMode.PASSWORD;
+        this.mode = oidcConfigured ? AuthMode.OAUTH2 : AuthMode.PASSWORD;
     }
 
     public AuthMode getMode() {
